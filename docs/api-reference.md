@@ -2,7 +2,8 @@
 
 ## 通用约定
 
-- Base URL：`/api/v1`，网关端口 `8080`；前端 Vite 代理 `/api` → `http://localhost:8080`。
+- Base URL：`/api/v1`。P0 为模块化单体，后端只有 `8080` 一个端口（launcher 应用）；前端 Vite 代理 `/api` → `http://localhost:8080`。
+- `GET /api/v1/system/modules` 为单应用自检端点，返回当前启动类扫描到的全部业务模块与运行端口。
 - 所有响应统一包装：
 
 ```json
@@ -89,4 +90,4 @@ P0 响应（占位）：
 }
 ```
 
-P1 响应 `data` 结构见 `backend/api/src/main/java/com/admitatlas/api/dto/MatchResultDTO.java`。
+P1 响应 `data` 结构见 `back-end-spring-cloud/api/src/main/java/com/admitatlas/api/dto/MatchResultDTO.java`。

@@ -1,6 +1,6 @@
 # 数据模型与字段字典
 
-完整可执行建表脚本见 [`backend/deploy/sql/V1__init.sql`](../backend/deploy/sql/V1__init.sql)（MySQL 8.0+，Flyway 命名）。
+完整可执行建表脚本见 [`back-end-spring-cloud/sql/V1__init.sql`](../back-end-spring-cloud/sql/V1__init.sql)（MySQL 8.0+，Flyway 命名）。
 
 ## 建模原则
 

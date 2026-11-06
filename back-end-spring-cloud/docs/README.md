@@ -1,0 +1,64 @@
+# 后端模块总览
+
+后端工程位于 `back-end-spring-cloud/`，父 POM 在此目录下，11 个模块**全部平铺**，不再按 `common/` `services/` 二次分组。
+
+## 运行形态：模块化单体（P0）
+
+| 角色 | 模块数 | 特征 |
+|---|---|---|
+| 普通 library jar | 10 | 无 `main`、无 `application.yml`、不应用 `spring-boot-maven-plugin` |
+| 可执行应用 | 1（`launcher`） | 唯一 `AdmitAtlasApplication`、唯一配置、唯一可执行 jar、唯一端口 8080 |
+
+`launcher` 的启动类位于 `com.admitatlas` 根包，一次组件扫描装配所有模块的 `@Controller` / `@Service` / `@Component` / `@Configuration`。业务模块之间不互相依赖，统一由 `launcher` 聚合。
+
+## 模块清单
+
+| 目录 | artifactId | 职责 | P0 关键类 |
+|---|---|---|---|
+| `common-core/` | `admitatlas-common-core` | 统一响应、错误码、业务异常、全局异常处理、模块探针契约 | `Result`、`ResultCode`、`BizException`、`GlobalExceptionHandler`、`ModuleProbe` |
+| `api/` | `admitatlas-api` | 模块间共享 DTO 契约，P1 起补 Feign 接口 | `ScoreInputDTO`、`MatchRequestDTO`、`MatchResultDTO` |
+| `gateway/` | `admitatlas-gateway` | 统一 Web 入口配置（CORS / 后续拦截器）；拆分时升级为 Spring Cloud Gateway | `ApiGatewayConfig` |
+| `auth-user/` | `admitatlas-auth-user` | 用户、学生成绩档案、鉴权 | `AuthUserProbe`（占位） |
+| `school/` | `admitatlas-school` | 院校 / 专业档案库 | `SchoolProbe`（占位） |
+| `score/` | `admitatlas-score` | 投档线、一分一段、批次线、位次换算 | `ScoreProbe`（占位） |
+| `policy-rule/` | `admitatlas-policy-rule` | 省份 × 年份 × 考试模式的志愿规则配置 | `PolicyRuleProbe`（占位） |
+| `match-engine/` | `admitatlas-match-engine` | 匹配引擎（核心）：资格过滤、候选检索、风险打分、冲稳保分档 | `MatchController`、`MatchStrategy` 及三种实现、`MatchStrategyFactory` |
+| `plan-report/` | `admitatlas-plan-report` | 志愿方案保存、校验、PDF / Excel 导出 | `PlanReportProbe`（占位） |
+| `data-collector/` | `admitatlas-data-collector` | 离线采集流水线；P2 起可独立部署，不挂 C 端入口 | `DataCollectorProbe`（占位） |
+| `launcher/` | `admitatlas-launcher` | **唯一启动应用**：聚合全部模块，暴露 8080 | `AdmitAtlasApplication`、`SystemController`、`application.yml` |
+
+每个业务模块都实现了 `ModuleProbe`，`GET /api/v1/system/modules` 会列出它们，用于验证单启动类是否完整扫描。
+
+## 其他目录
+
+| 目录 | 内容 |
+|---|---|
+| `sql/` | Flyway 建表脚本（`V1__init.sql`） |
+| `deploy/` | `docker-compose.yml`（MySQL / Redis / Nacos）、`nacos/README.md` |
+| `docs/` | 本文件（模块总览） |
+
+项目级设计文档统一放在仓库根的 `docs/`。
+
+## 依赖方向
+
+```
+launcher ──> 各业务模块 ──> api ──> common-core
+                     └────> common-core
+```
+
+- 禁止反向依赖（`common-core` 不得依赖任何业务模块）。
+- 业务模块之间不直接互相依赖；需要共享的数据结构放 `api`，需要跨模块调用时先抽接口。
+- 新增模块：在后端根目录建平铺目录 → 父 POM 加 `<module>` 与版本仲裁 → 实现 `ModuleProbe` → `launcher` 加依赖。
+
+## 启动与验证
+
+```bash
+cd back-end-spring-cloud
+mvn -B -DskipTests clean package
+java -jar launcher/target/admitatlas-launcher-0.1.0-SNAPSHOT.jar
+
+curl http://localhost:8080/actuator/health
+curl http://localhost:8080/api/v1/system/modules
+```
+
+详细步骤见 [`../../docs/development-guide.md`](../../docs/development-guide.md)。

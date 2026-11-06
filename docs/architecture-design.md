@@ -3,6 +3,8 @@
 > 目标：采集全国高校历年录取分数（总分 + 科目相关分数口径）+ 各省一分一段/招生计划，建立高校档案库；学生输入高考成绩后，按其所在省份的志愿填报规则进行匹配，输出「冲 / 稳 / 保」志愿建议。
 > 技术栈：后端 Spring Boot + Spring Cloud，前端 Vue3 + JavaScript + TailwindCSS。
 
+> **实现形态说明（2026-11 更新）**：本文描述的是目标架构与演进路线。当前仓库的 P0 骨架落地为**模块化单体**——外层项目根下 `back-end-spring-cloud/` 平铺 11 个模块，其中 10 个是普通 library jar（无启动类、无独立配置），只有 `launcher` 持有唯一启动类、唯一 `application.yml` 与唯一可执行 jar（8080）；`front-end/` 为前端，`docs/` 为项目文档。本文中的 API 网关、注册中心、服务拆分属于 P3 目标，相关依赖已保留但默认关闭。当前目录结构、启动方式与验证命令见 `README.md`、`docs/development-guide.md` 与 `back-end-spring-cloud/docs/README.md`。
+
 ---
 
 ## 一、三个决定成败的前提（先于任何设计）
@@ -250,6 +252,29 @@ src/
 ---
 
 ## 八、后端工程结构（Maven 多模块）
+
+> 本节下半部分的 `gaokao-platform/` 树是 **P3 拆分为独立微服务后的目标形态**，不是当前仓库结构。当前 P0 骨架按下面这棵树落地。
+
+### 当前仓库结构（P0 · 模块化单体，单启动类）
+
+```
+AdmitAtlas/                          # 外层：项目根
+├── back-end-spring-cloud/           # 后端聚合工程，11 个模块直接平铺
+│   ├── pom.xml                      # 父 POM：模块聚合 + 依赖版本仲裁
+│   ├── common-core/  api/  gateway/
+│   ├── auth-user/  school/  score/  policy-rule/
+│   ├── match-engine/  plan-report/  data-collector/   # 以上 10 个均为普通 library jar
+│   ├── launcher/                    # ★ 唯一启动类 + 唯一配置 + 唯一可执行 jar（8080）
+│   ├── sql/                         # Flyway 迁移脚本
+│   ├── deploy/                      # docker-compose、Nacos 配置说明
+│   └── docs/                        # 后端模块总览
+├── front-end/                       # Vue 3 SPA
+└── docs/                            # 项目设计文档
+```
+
+差异要点：P0 不做服务注册与网关转发，所有 Controller 处于同一个 Spring MVC 上下文；第四节列出的 8 个「服务」在代码中是 8 个平铺模块，由 `launcher` 统一组件扫描装配。Spring Cloud / Nacos 依赖保留但默认关闭，拆分时给目标模块补回启动类与配置即可，业务代码无需改动。
+
+### 目标微服务结构（P3）
 
 ```
 gaokao-platform/

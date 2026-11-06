@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.admitatlas</groupId>
+    <artifactId>admitatlas-backend</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+    <name>AdmitAtlas Backend</name>
+    <description>全国高校录取数据档案库与高考志愿匹配平台 - 后端聚合工程（模块化单体，单启动类）</description>
+
+    <!--
+      P0 采用「模块化单体」：除 launcher 外，所有模块都是普通 library jar，
+      没有 main 方法、没有独立 application.yml、没有 spring-boot-maven-plugin。
+      launcher 是唯一可执行的 Spring Boot 应用，统一扫描 com.admitatlas 包。
+      未来拆分微服务时，只需给对应模块补回启动类与配置即可，业务代码不用改。
+    -->
+    <modules>
+        <module>common-core</module>
+        <module>api</module>
+        <module>gateway</module>
+        <module>auth-user</module>
+        <module>school</module>
+        <module>score</module>
+        <module>policy-rule</module>
+        <module>match-engine</module>
+        <module>plan-report</module>
+        <module>data-collector</module>
+        <module>launcher</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <spring-cloud.version>2023.0.1</spring-cloud.version>
+        <spring-cloud-alibaba.version>2023.0.1.0</spring-cloud-alibaba.version>
+        <admitatlas.version>0.1.0-SNAPSHOT</admitatlas.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba-dependencies</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- 内部模块版本统一在这里仲裁，launcher 依赖时无需再写 version -->
+            <dependency>
+                <groupId>com.admitatlas</groupId>
+                <artifactId>admitatlas-common-core</artifactId>
+                <version>${admitatlas.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.admitatlas</groupId>
+                <artifactId>admitatlas-api</artifactId>
+                <version>${admitatlas.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.admitatlas</groupId>
+                <artifactId>admitatlas-gateway</artifactId>
+                <version>${admitatlas.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.admitatlas</groupId>
+                <artifactId>admitatlas-auth-user</artifactId>
+                <version>${admitatlas.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.admitatlas</groupId>
+                <artifactId>admitatlas-school</artifactId>
+                <version>${admitatlas.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.admitatlas</groupId>
+                <artifactId>admitatlas-score</artifactId>
+                <version>${admitatlas.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.admitatlas</groupId>
+                <artifactId>admitatlas-policy-rule</artifactId>
+                <version>${admitatlas.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.admitatlas</groupId>
+                <artifactId>admitatlas-match-engine</artifactId>
+                <version>${admitatlas.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.admitatlas</groupId>
+                <artifactId>admitatlas-plan-report</artifactId>
+                <version>${admitatlas.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.admitatlas</groupId>
+                <artifactId>admitatlas-data-collector</artifactId>
+                <version>${admitatlas.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <!-- 仅 launcher 模块应用此插件，保证全工程只有一个可执行 jar -->
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>3.2.5</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

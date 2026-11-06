@@ -15,44 +15,73 @@
 | 层 | 选型 |
 |---|---|
 | 后端 | Spring Boot 3.2.5 · Spring Cloud 2023.0.1 · Spring Cloud Alibaba 2023.0.1.0 · Maven 多模块 · Java 17 |
+| 运行形态 | **模块化单体**：全后端只有一个启动类、一个端口、一个可执行 jar；Spring Cloud / Nacos 依赖保留但默认关闭 |
 | 前端 | Vue 3 · Vite 5 · JavaScript · TailwindCSS 3 · Pinia · Vue Router · Axios · Naive UI · ECharts |
 | 存储 | MySQL 8（按年分区）· Redis 7 · Elasticsearch 8 · MinIO（原始文件留证） |
-| 基础设施 | Nacos（注册/配置）· Spring Cloud Gateway · Sentinel · XXL-Job · MQ · Prometheus / SkyWalking |
+| 基础设施 | P3 演进目标：Nacos 注册/配置、Spring Cloud Gateway、Sentinel、XXL-Job、MQ、Prometheus / SkyWalking |
 
 ## 目录结构
 
+外层是项目根目录，里面平铺三个部分：后端工程、前端工程、项目文档。参考 `Chronicles-Of-Time` 的组织方式。
+
 ```
-AdmitAtlas/
-├── docs/                     # 全部设计文档
-│   ├── architecture-design.md    # 架构设计（功能、服务、表、算法、路线）
-│   ├── data-model.md             # 数据模型与字段字典
-│   ├── api-reference.md          # REST 接口约定
-│   ├── development-guide.md      # 本地开发与启动
-│   ├── data-compliance.md        # 数据来源与合规
-│   └── roadmap.md                # P0 - P3 路线图
-├── backend/
-│   ├── pom.xml                   # 父 POM（依赖版本仲裁）
-│   ├── common/common-core/       # 统一响应、异常、全局异常处理
-│   ├── api/                      # 跨服务 DTO 契约
-│   ├── services/                 # 8 个可独立启动的 Spring Boot 服务
-│   └── deploy/                   # SQL 迁移脚本、docker-compose、Nacos 配置
-└── frontend/                    # Vue 3 SPA
+AdmitAtlas/                              # 外层：项目根 / Git 仓库根
+├── back-end-spring-cloud/               # 后端聚合工程（父 POM 在此目录下）
+│   ├── pom.xml                          # 聚合 11 个平铺模块 + 依赖版本仲裁
+│   ├── common-core/                     # 统一响应、错误码、异常、模块探针接口
+│   ├── api/                             # 跨模块共享 DTO 契约
+│   ├── gateway/                         # 统一 Web 入口配置（CORS / 拦截器）
+│   ├── auth-user/                       # 用户与成绩档案
+│   ├── school/                          # 院校 / 专业档案
+│   ├── score/                           # 投档线、一分一段、批次线
+│   ├── policy-rule/                     # 志愿规则配置
+│   ├── match-engine/                    # 匹配引擎（策略 + Controller，核心）
+│   ├── plan-report/                     # 方案与导出
+│   ├── data-collector/                  # 离线采集
+│   ├── launcher/                        # ★ 唯一启动类 / 唯一 application.yml / 唯一可执行 jar
+│   ├── sql/                             # Flyway 建表脚本
+│   ├── deploy/                          # docker-compose、Nacos 共享配置说明
+│   └── docs/README.md                   # 后端模块总览
+├── front-end/                           # Vue 3 SPA（Vite 5）
+├── docs/                                # 全部设计文档
+│   ├── architecture-design.md           # 架构设计（功能、服务、表、算法、路线）
+│   ├── data-model.md                    # 数据模型与字段字典
+│   ├── api-reference.md                 # REST 接口约定
+│   ├── development-guide.md             # 本地开发与启动
+│   ├── data-compliance.md               # 数据来源与合规
+│   └── roadmap.md                       # P0 - P3 路线图
+└── README.md / LICENSE / .gitignore / .gitattributes
 ```
+
+### 为什么是单启动类
+
+`common-core` 到 `data-collector` 这 10 个模块都是**普通 library jar**：没有 `main` 方法、没有自己的 `application.yml`、不应用 `spring-boot-maven-plugin`。只有 `launcher` 依赖它们并持有唯一的 `AdmitAtlasApplication`，位于 `com.admitatlas` 根包，一次组件扫描装配全部模块，对外只暴露 `8080`。
+
+这样做的好处：一个进程就能跑通全链路、本地调试简单、模块边界仍然清晰；等匹配计算或数据量成为瓶颈时，给目标模块补回启动类和配置即可拆成独立微服务，业务代码不用改。
+
+`GET /api/v1/system/modules` 会列出被启动类扫描到的全部模块，可直接用来验证装配是否完整。
 
 ## 快速开始
 
 ```bash
-# 后端：编译全部模块（需 JDK 17+ 与 Maven 3.8+）
-cd backend && mvn -q -DskipTests package
+# 后端：编译 11 个模块（需 JDK 17+ 与 Maven 3.8+）
+cd back-end-spring-cloud
+mvn -B -DskipTests clean package
 
-# 后端：启动网关（其余服务按需单独启动）
-mvn -pl services/gateway spring-boot:run
+# 后端：启动唯一的应用（默认 8080）
+java -jar launcher/target/admitatlas-launcher-0.1.0-SNAPSHOT.jar
+
+# 验证：应返回 8 个模块 + 三种考试模式
+curl http://localhost:8080/api/v1/system/modules
+curl http://localhost:8080/api/v1/match/strategies
 
 # 前端：安装依赖并启动（需 Node 20+）
-cd frontend && npm install && npm run dev
+cd ../front-end
+npm install
+npm run dev          # http://localhost:5173
 ```
 
-详细启动顺序、端口分配与配置说明见 [docs/development-guide.md](docs/development-guide.md)。
+详细配置、验证命令与常见问题见 [docs/development-guide.md](docs/development-guide.md)，后端模块职责见 [back-end-spring-cloud/docs/README.md](back-end-spring-cloud/docs/README.md)。
 
 ## 三条设计基线
 
@@ -64,10 +93,10 @@ cd frontend && npm install && npm run dev
 
 | 文档 | 内容 |
 |---|---|
-| [架构设计](docs/architecture-design.md) | 功能全景、微服务划分、采集治理、匹配算法、前后端结构、风险 |
+| [架构设计](docs/architecture-design.md) | 功能全景、服务划分、采集治理、匹配算法、前后端结构、风险 |
 | [数据模型](docs/data-model.md) | 核心表 DDL、索引、量级估算 |
 | [接口说明](docs/api-reference.md) | REST 端点、请求/响应约定 |
-| [开发指南](docs/development-guide.md) | 环境、构建、端口、启动顺序、常见问题 |
+| [开发指南](docs/development-guide.md) | 环境、构建、启动、验证、常见问题 |
 | [数据合规](docs/data-compliance.md) | 数据源分级、采集流水线、合规底线 |
 | [路线图](docs/roadmap.md) | P0 - P3 交付范围 |
 

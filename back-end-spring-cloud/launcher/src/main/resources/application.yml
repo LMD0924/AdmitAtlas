@@ -1,0 +1,32 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: admitatlas
+  cloud:
+    nacos:
+      discovery:
+        # P0 单体内不需要服务注册；拆分微服务时改为 true 并启动 Nacos
+        enabled: false
+        server-addr: 127.0.0.1:8848
+      config:
+        enabled: false
+  web:
+    resources:
+      # 前后端分离，后端不托管静态资源，避免 404 走资源处理器
+      add-mappings: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: always
+
+admitatlas:
+  stage: P0-skeleton
+  data-version: uninitialized
+  deploy-mode: single-application
