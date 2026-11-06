@@ -1,0 +1,67 @@
+# 数据模型与字段字典
+
+完整可执行建表脚本见 [`backend/deploy/sql/V1__init.sql`](../backend/deploy/sql/V1__init.sql)（MySQL 8.0+，Flyway 命名）。
+
+## 建模原则
+
+1. **位次优先**：`fact_admission_score.min_rank` 是唯一可跨年比较的字段；`min_score` 仅用于展示。
+2. **一省一年一版本**：所有事实表带 `province_code`、`exam_year`、`data_version`，支持重算历史方案与回滚。
+3. **留证与审核**：采集记录必须带 `source_url` 与 `audit_status`，审核通过后才允许发布。
+4. **单科分不入录取事实表**：单科成绩用于同分排序、专业单科门槛，建模在 `rule_policy` 与 `student_score`。
+
+## 表清单
+
+| 分类 | 表 | 粒度 | 说明 |
+|---|---|---|---|
+| 维度 | `dim_province` | 省份 | 省份代码、名称、当前考试模式、政策版本 |
+| 维度 | `dim_school` | 院校 | 院校代码、名称、主管部门、所在地、层次标签、类型 |
+| 维度 | `dim_major` | 专业 | 学科门类 → 专业类 → 专业（教育部目录） |
+| 维度 | `dim_subject_requirement` | 选科要求 | 物理必选 / 物化绑定 / 不限 等 |
+| 事实 | `fact_admission_plan` | 省 + 年 + 院校 + 专业组/专业 | 招生计划人数、批次、选科要求 |
+| 事实 | `fact_admission_score` | 同上 | 最低分、最低位次、平均分、最高分、计划数、实录数 |
+| 事实 | `fact_score_segment` | 省 + 年 + 科类 + 分数 | 本段人数、累计人数（即位次） |
+| 事实 | `fact_batch_line` | 省 + 年 + 科类 + 批次 | 省控线 / 批次线 |
+| 规则 | `rule_policy` | 省 + 年 + 考试模式 | 志愿单位类型、志愿数量、投档规则、同分排序字段序列 |
+| 用户 | `student_profile` | 用户 | 账号、省份、当前成绩档案 |
+| 用户 | `student_score` | 成绩档案 | 年份、模式、选科、总分、单科分 JSON、换算位次 |
+| 用户 | `student_preference` | 用户 | 地域、专业关键词、院校层次、优先级 |
+| 结果 | `match_task` | 匹配任务 | 异步任务状态、输入快照、数据版本 |
+| 结果 | `suggestion_plan` | 方案 | 冲稳保比例、志愿结构、生成时间 |
+| 结果 | `suggestion_item` | 方案明细 | 院校/专业组、档位、匹配度、历史位次、理由 |
+
+## 关键字段
+
+### `fact_admission_score`
+
+| 字段 | 类型 | 含义 |
+|---|---|---|
+| `province_code` | varchar(6) | 省份行政区划代码 |
+| `exam_year` | smallint | 高考年份（分区键） |
+| `category` | varchar(16) | 理科 / 文科 / 物理类 / 历史类 / 综合 |
+| `batch` | varchar(16) | 本科批 / 本科一批 / 专科批 |
+| `school_code` | varchar(10) | 院校代码 |
+| `group_code` | varchar(32) | 院校专业组（3+3 / 3+1+2 模式） |
+| `major_code` | varchar(16) | 专业代码（专业+院校 模式） |
+| `min_rank` | int | **最低录取位次，核心比较字段** |
+| `source_url` | varchar(512) | 数据来源留证 |
+| `data_version` | varchar(32) | 省 + 年 + 批次 + 发布日期 |
+| `audit_status` | tinyint | 0 待审 / 1 通过 / 2 驳回 |
+
+### `rule_policy`
+
+| 字段 | 含义 |
+|---|---|
+| `exam_mode` | TRADITIONAL / GROUP_3_3 / GROUP_3_1_2 |
+| `volunteer_unit` | SCHOOL_MAJOR / SCHOOL_GROUP / MAJOR_SCHOOL |
+| `volunteer_count` | 该省该年可填志愿数（45 / 96 / 112 …） |
+| `group_major_count` | 每个院校专业组内可填专业数 |
+| `sort_fields` | 同分排序字段有序序列（JSON 数组） |
+| `subject_rules` | 选科要求与单科门槛表达式（JSON） |
+
+## 索引与量级
+
+- 主查询索引：`idx_query (province_code, exam_year, category, batch, min_rank)`，覆盖「位次区间检索候选院校」这一核心查询。
+- 院校维度索引：`idx_school (school_code, exam_year)`。
+- `fact_admission_score` 按 `exam_year` 做 RANGE 分区。
+- 估算：31 省 × 3~5 年 × ~3000 院校 × 20~40 条 = 约 500 万~1000 万行。**MySQL 单库 + 分区足够，不需要分库分表**。
+- 缓存：一分一段表、批次线、省份规则全量进 Redis；候选池按 `(省, 年, 科类, 位次区间)` 预计算。

@@ -1,0 +1,52 @@
+# Build output
+target/
+*.class
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+build/
+dist/
+.vite/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+application-local.yml
+application-local.yaml
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & runtime
+*.log
+logs/
+*.pid
+.nacos/
+data/
+
+# Tooling cache
+.eslintcache
+*.tsbuildinfo
+coverage/
