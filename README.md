@@ -41,15 +41,15 @@ AdmitAtlas/                              # 外层：项目根 / Git 仓库根
 │   ├── launcher/                        # ★ 唯一启动类 / 唯一 application.yml / 唯一可执行 jar
 │   ├── sql/                             # Flyway 建表脚本
 │   ├── deploy/                          # docker-compose、Nacos 共享配置说明
-│   └── docs/README.md                   # 后端模块总览
+│   └── docs/后端模块总览.md              # 后端模块职责说明
 ├── front-end/                           # Vue 3 SPA（Vite 5）
-├── docs/                                # 全部设计文档
-│   ├── architecture-design.md           # 架构设计（功能、服务、表、算法、路线）
-│   ├── data-model.md                    # 数据模型与字段字典
-│   ├── api-reference.md                 # REST 接口约定
-│   ├── development-guide.md             # 本地开发与启动
-│   ├── data-compliance.md               # 数据来源与合规
-│   └── roadmap.md                       # P0 - P3 路线图
+├── docs/                                # 全部设计文档（中文命名）
+│   ├── 架构设计.md                       # 功能、服务、表、算法、路线
+│   ├── 数据模型.md                       # 数据模型与字段字典
+│   ├── 接口说明.md                       # REST 接口约定
+│   ├── 开发指南.md                       # 本地开发与启动
+│   ├── 数据合规.md                       # 数据来源与合规
+│   └── 路线图.md                         # P0 - P3 路线图
 └── README.md / LICENSE / .gitignore / .gitattributes
 ```
 
@@ -81,7 +81,7 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-详细配置、验证命令与常见问题见 [docs/development-guide.md](docs/development-guide.md)，后端模块职责见 [back-end-spring-cloud/docs/README.md](back-end-spring-cloud/docs/README.md)。
+详细配置、验证命令与常见问题见 [docs/开发指南.md](docs/开发指南.md)，后端模块职责见 [back-end-spring-cloud/docs/后端模块总览.md](back-end-spring-cloud/docs/后端模块总览.md)。
 
 ## 三条设计基线
 
@@ -93,12 +93,13 @@ npm run dev          # http://localhost:5173
 
 | 文档 | 内容 |
 |---|---|
-| [架构设计](docs/architecture-design.md) | 功能全景、服务划分、采集治理、匹配算法、前后端结构、风险 |
-| [数据模型](docs/data-model.md) | 核心表 DDL、索引、量级估算 |
-| [接口说明](docs/api-reference.md) | REST 端点、请求/响应约定 |
-| [开发指南](docs/development-guide.md) | 环境、构建、启动、验证、常见问题 |
-| [数据合规](docs/data-compliance.md) | 数据源分级、采集流水线、合规底线 |
-| [路线图](docs/roadmap.md) | P0 - P3 交付范围 |
+| [架构设计](docs/架构设计.md) | 功能全景、服务划分、采集治理、匹配算法、前后端结构、风险 |
+| [数据模型](docs/数据模型.md) | 核心表 DDL、索引、量级估算 |
+| [接口说明](docs/接口说明.md) | REST 端点、请求/响应约定 |
+| [开发指南](docs/开发指南.md) | 环境、构建、启动、验证、常见问题 |
+| [数据合规](docs/数据合规.md) | 数据源分级、采集流水线、合规底线 |
+| [路线图](docs/路线图.md) | P0 - P3 交付范围 |
+| [后端模块总览](back-end-spring-cloud/docs/后端模块总览.md) | 后端 11 个模块的职责与依赖方向 |
 
 ## License
 
