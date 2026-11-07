@@ -55,8 +55,13 @@ changed = [p.decode("utf-8") for p in git("diff", "--name-only", "-z", parent, l
 print("changed files:", len(changed))
 entries = []
 for path in changed:
+    full = os.path.join(ROOT, path)
+    if not os.path.exists(full):
+        entries.append({"path": path, "mode": "100644", "type": "blob", "sha": None})
+        print("  delete", path)
+        continue
     blob = api("POST", "git/blobs", {
-        "content": base64.b64encode(open(os.path.join(ROOT, path), "rb").read()).decode("ascii"),
+        "content": base64.b64encode(open(full, "rb").read()).decode("ascii"),
         "encoding": "base64",
     })
     mode = text("ls-tree", local, "--", path).split()[0]

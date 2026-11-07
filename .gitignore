@@ -50,3 +50,10 @@ data/
 .eslintcache
 *.tsbuildinfo
 coverage/
+
+# One-off local verification / sync helpers (never commit)
+_sync_remote.py
+_visual_check.mjs
+_bbox.mjs
+.preview/
+.chrome-preview/
