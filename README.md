@@ -16,7 +16,7 @@
 |---|---|
 | 后端 | Spring Boot 3.2.5 · Spring Cloud 2023.0.1 · Spring Cloud Alibaba 2023.0.1.0 · Maven 多模块 · Java 17 |
 | 运行形态 | **模块化单体**：全后端只有一个启动类、一个端口、一个可执行 jar；Spring Cloud / Nacos 依赖保留但默认关闭 |
-| 前端 | Vue 3 · Vite 5 · JavaScript · TailwindCSS 3 · Pinia · Vue Router · Axios · Naive UI · ECharts |
+| 前端 | Vue 3 · Vite 5 · JavaScript · TailwindCSS 3 · Pinia · Vue Router · Axios · 原生 CSS 动效（Naive UI / ECharts 为 P1 备用） |
 | 存储 | MySQL 8（按年分区）· Redis 7 · Elasticsearch 8 · MinIO（原始文件留证） |
 | 基础设施 | P3 演进目标：Nacos 注册/配置、Spring Cloud Gateway、Sentinel、XXL-Job、MQ、Prometheus / SkyWalking |
 
@@ -46,6 +46,7 @@ AdmitAtlas/                              # 外层：项目根 / Git 仓库根
 ├── docs/                                # 全部设计文档（中文命名）
 │   ├── 架构设计.md                       # 功能全景、服务、表、算法、路线
 │   ├── 功能清单.md                       # 121 个编号化功能点、优先级与验收口径
+│   ├── 前端视觉规范.md                   # 双主题、毛玻璃、动效、导航与路由过渡
 │   ├── 数据模型.md                       # 数据模型与字段字典
 │   ├── 接口说明.md                       # REST 接口约定
 │   ├── 开发指南.md                       # 本地开发与启动
@@ -90,12 +91,17 @@ npm run dev          # http://localhost:5173
 2. **志愿规则配置化** —— 省份 × 年份 × 考试模式（传统文理 / 院校专业组 / 专业+院校）由规则表 + 策略模式驱动，禁止硬编码。
 3. **数据版本化 + 人工审核** —— 采集数据留证、校验、复核后才能发布，输出「匹配度 / 风险等级」而非「录取率」。
 
+## 前端视觉
+
+青瓷 × 墨灰的低饱和配色，明暗双主题（顶栏右侧切换、跟随系统、刷新保持）；全站磨砂玻璃卡片与跟随鼠标的柔光；滚动入场交错、数字滚动、光斑漂移、按钮光泽等动效；顶栏在置顶时完全透明融入页面、下滑后收缩为磨砂胶囊；路由切换有品牌加载遮罩 + 页面淡入过渡。全部由原生 CSS 变量与 Vue Transition 实现，无新增依赖，并适配 `prefers-reduced-motion`。细节见 [前端视觉规范](docs/前端视觉规范.md)。
+
 ## 文档索引
 
 | 文档 | 内容 |
 |---|---|
 | [架构设计](docs/架构设计.md) | 功能全景、服务划分、采集治理、匹配算法、前后端结构、风险 |
 | [功能清单](docs/功能清单.md) | 121 个编号化功能点，含优先级、归属模块、状态与验收口径 |
+| [前端视觉规范](docs/前端视觉规范.md) | 明暗双主题 token、毛玻璃组件、动效体系、导航与路由过渡 |
 | [数据模型](docs/数据模型.md) | 核心表 DDL、索引、量级估算 |
 | [接口说明](docs/接口说明.md) | REST 端点、请求/响应约定 |
 | [开发指南](docs/开发指南.md) | 环境、构建、启动、验证、常见问题 |

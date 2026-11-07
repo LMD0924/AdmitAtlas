@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { startRouteLoading, stopRouteLoading } from '@/composables/useRouteLoading'
 
 const routes = [
   {
@@ -45,8 +46,18 @@ const router = createRouter({
   scrollBehavior: () => ({ top: 0 })
 })
 
+let firstNavigation = true
+
+router.beforeEach((to, from) => {
+  if (!firstNavigation && to.fullPath !== from.fullPath) startRouteLoading()
+  firstNavigation = false
+})
+
 router.afterEach((to) => {
   document.title = `${to.meta.title ?? 'AdmitAtlas'} · AdmitAtlas`
+  stopRouteLoading()
 })
+
+router.onError(() => stopRouteLoading())
 
 export default router
