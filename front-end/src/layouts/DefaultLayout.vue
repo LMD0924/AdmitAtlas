@@ -6,15 +6,15 @@ import RouteLoader from '@/components/RouteLoader.vue'
 <template>
   <div class="bg-layer" aria-hidden="true">
     <div class="bg-grid"></div>
-    <div class="orb orb-a"></div>
-    <div class="orb orb-b"></div>
-    <div class="orb orb-c"></div>
+    <div class="halo halo-a"></div>
+    <div class="halo halo-b"></div>
+    <div class="halo halo-c"></div>
   </div>
 
   <div class="relative z-10 flex min-h-[100dvh] flex-col">
     <AppHeader />
 
-    <main class="mx-auto w-full max-w-[1320px] flex-1 px-5 pb-20 pt-[128px] md:px-8 md:pt-[148px]">
+    <main class="mx-auto w-full max-w-[1200px] flex-1 px-5 pb-16 pt-[110px] md:px-8 md:pt-[124px]">
       <RouterView v-slot="{ Component, route }">
         <Transition name="page" mode="out-in">
           <component :is="Component" :key="route.path" />
@@ -22,8 +22,8 @@ import RouteLoader from '@/components/RouteLoader.vue'
       </RouterView>
     </main>
 
-    <footer class="glass-flat mx-auto mb-5 w-[calc(100%-2.5rem)] max-w-[1320px] rounded-[22px] px-6 py-5 md:w-[calc(100%-4rem)]">
-      <div class="flex flex-wrap items-center justify-between gap-3 text-xs leading-6 muted">
+    <footer class="mx-auto mb-5 w-[calc(100%-2.5rem)] max-w-[1200px] border-t border-hairline px-2 py-5 md:w-[calc(100%-4rem)]">
+      <div class="flex flex-wrap items-center justify-between gap-3 text-[12px] leading-6 muted">
         <span class="flex items-center gap-2">
           <span class="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-accent"></span>
           AdmitAtlas · P0 骨架阶段，数据与匹配算法尚未上线

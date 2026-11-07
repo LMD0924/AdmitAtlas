@@ -1,7 +1,8 @@
 import { ref, watch } from 'vue'
 
 const STORAGE_KEY = 'admitatlas-theme'
-const DARK_QUERY = '(prefers-color-scheme: dark)'
+// The reference design is a light, paper-like UI, so light is the default.
+// A user's explicit toggle is remembered; we no longer auto-switch on OS changes.
 
 function readStored() {
   try {
@@ -12,12 +13,7 @@ function readStored() {
   }
 }
 
-function systemTheme() {
-  return window.matchMedia?.(DARK_QUERY).matches ? 'dark' : 'light'
-}
-
-const theme = ref(readStored() || (typeof window !== 'undefined' ? systemTheme() : 'light'))
-let listening = false
+const theme = ref(readStored() || 'light')
 
 function apply(value) {
   if (typeof document === 'undefined') return
@@ -36,12 +32,7 @@ watch(theme, (value) => {
 
 export function useTheme() {
   function initTheme() {
-    apply(readStored() || systemTheme())
-    if (listening || typeof window === 'undefined') return
-    listening = true
-    window.matchMedia?.(DARK_QUERY).addEventListener?.('change', (event) => {
-      if (!readStored()) theme.value = event.matches ? 'dark' : 'light'
-    })
+    apply(theme.value)
   }
 
   function setTheme(value) {

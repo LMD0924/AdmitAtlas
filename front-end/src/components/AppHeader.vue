@@ -7,12 +7,21 @@ const { theme, toggleTheme } = useTheme()
 const route = useRoute()
 const scrolled = ref(false)
 
+// outline icon path data (24x24)
+const icons = {
+  home: 'M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5M9.5 20v-6h5v6',
+  edit: 'M4 20h4l10.5-10.5a2 2 0 0 0-4-4L4 16v4ZM14 6l4 4',
+  target: 'M12 3a9 9 0 1 0 9 9M12 7a5 5 0 1 0 5 5M12 11a1 1 0 1 0 1 1',
+  list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
+  search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16.5 16.5 21 21'
+}
+
 const links = [
-  { to: '/', label: '概览' },
-  { to: '/score', label: '成绩录入' },
-  { to: '/match', label: '智能匹配' },
-  { to: '/plan', label: '志愿方案' },
-  { to: '/schools', label: '院校库' }
+  { to: '/', label: '概览', icon: icons.home },
+  { to: '/score', label: '成绩录入', icon: icons.edit },
+  { to: '/match', label: '智能匹配', icon: icons.target },
+  { to: '/plan', label: '志愿方案', icon: icons.list },
+  { to: '/schools', label: '资源中枢', icon: icons.search }
 ]
 
 function onScroll() {
@@ -31,7 +40,10 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
     <div class="nav-shell">
       <RouterLink to="/" class="flex flex-none items-center gap-2.5" aria-label="AdmitAtlas 首页">
         <span class="brand-mark">A</span>
-        <span class="brand-name">AdmitAtlas</span>
+        <span>
+          <span class="brand-name">AdmitAtlas</span>
+          <span class="brand-sub">Forge your path, rank by rank</span>
+        </span>
       </RouterLink>
 
       <nav class="nav-links" aria-label="主导航">
@@ -42,6 +54,9 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
           class="nav-link"
           :class="{ 'is-active': route.path === link.to }"
         >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path :d="link.icon" />
+          </svg>
           {{ link.label }}
         </RouterLink>
       </nav>
@@ -54,14 +69,17 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
           :title="theme === 'dark' ? '浅色主题' : '深色主题'"
           @click="toggleTheme"
         >
-          <svg v-if="theme === 'dark'" viewBox="0 0 24 24" fill="none" class="icon-swap" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <svg v-if="theme === 'dark'" viewBox="0 0 24 24" fill="none" class="icon-swap" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
             <circle cx="12" cy="12" r="4" />
             <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
           </svg>
-          <svg v-else viewBox="0 0 24 24" fill="none" class="icon-swap" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <svg v-else viewBox="0 0 24 24" fill="none" class="icon-swap" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
             <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z" />
           </svg>
         </button>
+        <span class="nav-divider"></span>
+        <span class="avatar">A</span>
+        <span class="nav-user">访客</span>
       </div>
     </div>
   </header>

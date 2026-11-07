@@ -11,7 +11,7 @@ import { routeLoading } from '@/composables/useRouteLoading'
           A
         </div>
         <div class="loader-bar"><i></i></div>
-        <p class="loader-text">Preparing your atlas</p>
+        <p class="loader-text">正在准备页面…</p>
       </div>
     </div>
   </Transition>

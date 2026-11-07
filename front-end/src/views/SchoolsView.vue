@@ -7,9 +7,9 @@ const activeFilter = ref('全部')
 
 const filters = ['全部', '985 / 211', '双一流', '省重点']
 const capabilities = [
-  { span: 'lg:col-span-5', tag: '档案', title: '院校层次与属地', desc: '985 / 211 / 双一流、主管部门、所在地与办学性质，支持多条件组合检索。' },
-  { span: 'lg:col-span-4', tag: '目录', title: '学科门类与专业', desc: '门类 → 专业类 → 专业三级目录，联动选科要求与开设院校。' },
-  { span: 'lg:col-span-3', tag: '趋势', title: '历年录取轨迹', desc: '近 3–5 年最低位次与计划数变化。' }
+  { span: 'lg:col-span-5', tag: '档案', title: '院校层次与属地', desc: '985 / 211 / 双一流、主管部门、所在地与办学性质，支持多条件组合检索。', pill: 'pill-sky' },
+  { span: 'lg:col-span-4', tag: '目录', title: '学科门类与专业', desc: '门类 → 专业类 → 专业三级目录，联动选科要求与开设院校。', pill: 'pill-violet' },
+  { span: 'lg:col-span-3', tag: '趋势', title: '历年录取轨迹', desc: '近 3–5 年最低位次与计划数变化。', pill: 'pill-mint' }
 ]
 
 const emptyText = computed(() =>
@@ -24,18 +24,16 @@ function search() {
 </script>
 
 <template>
-  <div class="space-y-8">
+  <div class="space-y-6">
     <div>
-      <p v-reveal="0" class="eyebrow">School archive</p>
-      <h1 v-reveal="1" class="mt-5 text-[clamp(2rem,3.4vw,3rem)] font-medium leading-tight tracking-[-0.04em]">
-        全国高校，<br /><span class="text-accent">一张可检索的地图</span>
-      </h1>
-      <p v-reveal="2" class="mt-4 max-w-[60ch] text-[14px] leading-7 muted">
+      <p v-reveal="0" class="eyebrow">School archive / 资源中枢</p>
+      <h1 v-reveal="1" class="mt-2 text-[22px] font-semibold tracking-[-0.02em]">全国高校，一张可检索的地图</h1>
+      <p v-reveal="2" class="mt-2 max-w-[76ch] text-[12px] leading-6 muted">
         按层次、地域、类型检索院校档案与历年录取趋势。数据版本、来源与更新时间随结果一同公示。
       </p>
     </div>
 
-    <div v-reveal="0" v-spotlight class="glass spotlight p-6 md:p-8">
+    <div v-reveal="0" class="glass p-6 md:p-7">
       <div class="flex flex-wrap gap-3">
         <input
           v-model="keyword"
@@ -46,7 +44,7 @@ function search() {
         />
         <button class="btn btn-primary" @click="search">检索 <span class="link-arrow">→</span></button>
       </div>
-      <div class="mt-5 flex flex-wrap gap-2">
+      <div class="mt-4 flex flex-wrap gap-2">
         <button
           v-for="f in filters"
           :key="f"
@@ -59,13 +57,13 @@ function search() {
         </button>
       </div>
 
-      <div class="empty-state mt-7">
-        <svg class="mx-auto h-9 w-9 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round">
+      <div class="empty-state mt-6">
+        <svg class="mx-auto h-8 w-8 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
           <circle cx="11" cy="11" r="6.5" />
           <path d="m16 16 4.5 4.5M8.5 11h5M11 8.5v5" />
         </svg>
-        <p class="mt-5 text-[14px] font-medium">{{ emptyText }}</p>
-        <p class="mt-2 text-[12px] faint">P1 接入 Elasticsearch 后开放检索、档案详情与多校对比</p>
+        <p class="mt-4 text-[13px] font-semibold">{{ emptyText }}</p>
+        <p class="mt-2 text-[11px] faint">P1 接入 Elasticsearch 后开放检索、档案详情与多校对比</p>
       </div>
     </div>
 
@@ -74,16 +72,15 @@ function search() {
         v-for="(c, i) in capabilities"
         :key="c.title"
         v-reveal="i + 1"
-        v-spotlight
-        :class="['glass spotlight lift p-6', c.span]"
+        :class="['glass lift p-5', c.span]"
       >
-        <span class="badge">{{ c.tag }}</span>
-        <h3 class="mt-5 text-[16px] font-medium">{{ c.title }}</h3>
-        <p class="mt-2 text-[13px] leading-7 muted">{{ c.desc }}</p>
+        <span class="pill" :class="c.pill">{{ c.tag }}</span>
+        <h3 class="mt-4 text-[14px] font-semibold">{{ c.title }}</h3>
+        <p class="mt-2 text-[12px] leading-6 muted">{{ c.desc }}</p>
       </div>
     </div>
 
-    <p v-reveal="0" class="text-center text-[12px] faint">
+    <p v-reveal="0" class="text-center text-[11px] faint">
       所有录取数据均来自公开公示渠道并保留来源链接，最终以各省教育考试院公布为准
     </p>
   </div>

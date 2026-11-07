@@ -56,116 +56,121 @@ function submit() {
 </script>
 
 <template>
-  <div class="grid gap-6 lg:grid-cols-12">
-    <aside class="lg:col-span-4">
+  <div class="space-y-7">
+    <div>
       <p v-reveal="0" class="eyebrow">Step 01 / 成绩档案</p>
-      <h1 v-reveal="1" class="mt-5 text-[clamp(2rem,3.4vw,3rem)] font-medium leading-tight tracking-[-0.04em]">
-        先让分数<br /><span class="text-accent">变得可比</span>
-      </h1>
-      <p v-reveal="2" class="mt-5 max-w-[38ch] text-[14px] leading-7 muted">
+      <h1 v-reveal="1" class="mt-2 text-[22px] font-semibold tracking-[-0.02em]">先让分数变得可比</h1>
+      <p v-reveal="2" class="mt-2 max-w-[76ch] text-[12px] leading-6 muted">
         分数本身不参与跨年比较。录入后系统会换算为省排名（位次），再用位次去对照历年投档线。
       </p>
+    </div>
 
-      <div v-reveal="3" class="glass mt-10 p-6">
-        <p class="eyebrow">Progress</p>
-        <div class="mt-6 space-y-0">
-          <div v-for="(item, i) in timeline" :key="item.no" class="timeline-row" :class="{ 'is-current': i === 0 }">
-            <span class="timeline-no">{{ item.no }}</span>
-            <div>
-              <p class="text-[14px] font-medium">{{ item.title }}</p>
-              <p class="mt-0.5 text-[12px] faint">{{ item.desc }}</p>
+    <div class="grid gap-4 lg:grid-cols-12">
+      <aside class="lg:col-span-4">
+        <div v-reveal="0" class="glass p-5">
+          <p class="eyebrow">Progress</p>
+          <div class="mt-4 space-y-0">
+            <div v-for="(item, i) in timeline" :key="item.no" class="timeline-row" :class="{ 'is-current': i === 0 }">
+              <span class="timeline-no">{{ item.no }}</span>
+              <div>
+                <p class="text-[13px] font-semibold">{{ item.title }}</p>
+                <p class="mt-0.5 text-[11px] faint">{{ item.desc }}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </aside>
 
-    <div class="lg:col-span-8">
-      <form v-reveal="1" v-spotlight class="glass spotlight p-6 md:p-8" @submit.prevent="submit">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-[17px] font-medium">成绩信息</h2>
-          <span class="badge">分数 → 位次</span>
-        </div>
-        <hr class="hairline my-6" />
-
-        <div class="grid gap-5 md:grid-cols-2">
-          <div v-reveal="1">
-            <label class="field-label" for="province">省份代码</label>
-            <input id="province" v-model="form.provinceCode" class="field" placeholder="如 42 表示湖北" maxlength="6" />
-          </div>
-          <div v-reveal="2">
-            <label class="field-label" for="year">高考年份</label>
-            <input id="year" v-model.number="form.examYear" type="number" class="field" min="2000" max="2100" />
-          </div>
-          <div v-reveal="3">
-            <label class="field-label" for="mode">考试模式</label>
-            <select id="mode" v-model="form.examMode" class="field">
-              <option v-for="m in examModes" :key="m.value" :value="m.value">{{ m.label }}</option>
-            </select>
-          </div>
-          <div v-reveal="4">
-            <label class="field-label" for="category">科类</label>
-            <input id="category" v-model="form.category" class="field" placeholder="物理类 / 历史类 / 理科 / 文科" />
-          </div>
-          <div v-reveal="5" class="md:col-span-2">
-            <label class="field-label" for="total">总分</label>
-            <input id="total" v-model.number="form.totalScore" type="number" class="field md:max-w-[260px]" min="0" max="750" />
-          </div>
-        </div>
-
-        <div v-reveal="6" class="mt-7">
-          <p class="field-label">选科组合</p>
-          <div class="flex flex-wrap gap-2">
-            <label
-              v-for="s in subjectOptions"
-              :key="s"
-              class="chip"
-              :class="{ 'is-active': form.subjectCombo.includes(s) }"
+        <div v-reveal="1" class="glass mt-4 p-5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-[13px] font-semibold">后端策略探测</p>
+            <span
+              class="pill"
+              :class="probeState === 'ok' ? 'pill-mint' : probeState === 'error' ? 'pill-rose' : 'pill-neutral'"
             >
-              <input v-model="form.subjectCombo" type="checkbox" :value="s" class="sr-only" />
-              {{ s }}
-            </label>
-          </div>
-        </div>
-
-        <hr class="hairline my-7" />
-        <div class="flex flex-wrap items-center gap-4">
-          <button type="submit" class="btn btn-primary">保存成绩档案 <span class="link-arrow">→</span></button>
-          <Transition name="page">
-            <span v-if="saved" class="tick flex items-center gap-2 text-[13px] muted">
-              <span class="inline-block h-1.5 w-1.5 rounded-full bg-accent"></span>
-              已保存到本地状态
+              {{ probeState === 'loading' ? '检测中' : probeState === 'ok' ? '已连通' : '未连通' }}
             </span>
-          </Transition>
-          <RouterLink v-if="saved" to="/match" class="btn btn-quiet ml-auto text-[13px]">
-            前往智能匹配 <span class="link-arrow">→</span>
-          </RouterLink>
+          </div>
+          <div v-if="probeState === 'loading'" class="shimmer placeholder-bar mt-4 h-2.5 w-2/3 rounded-full"></div>
+          <p v-else-if="modes.length" class="mt-3 text-[12px] leading-6 muted">
+            已注册模式：<span class="link">{{ modes.join(' · ') }}</span>
+          </p>
+          <p v-else class="mt-3 text-[12px] leading-6 muted">未检测到后端，请先启动 launcher 应用（8080）。</p>
+          <p class="mt-3 text-[11px] faint">位次换算接口 /api/v1/scores/convert-rank 将在 P1 实现。</p>
         </div>
-      </form>
+      </aside>
 
-      <div v-reveal="2" class="glass mt-5 p-6">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <p class="text-[14px] font-medium">后端策略探测</p>
-          <span class="badge" :style="probeState === 'error' ? { color: 'var(--chong-text)' } : null">
-            {{ probeState === 'loading' ? '检测中' : probeState === 'ok' ? '已连通' : '未连通' }}
-          </span>
-        </div>
-        <div v-if="probeState === 'loading'" class="shimmer placeholder-bar mt-4 h-3 w-2/3 rounded-full"></div>
-        <p v-else-if="modes.length" class="mt-3 text-[13px] muted">
-          已注册模式：<span class="text-accent">{{ modes.join(' · ') }}</span>
-        </p>
-        <p v-else class="mt-3 text-[13px] muted">未检测到后端，请先启动 launcher 应用（8080）。</p>
-        <p class="mt-3 text-[12px] faint">位次换算接口 /api/v1/scores/convert-rank 将在 P1 实现。</p>
+      <div class="lg:col-span-8">
+        <form v-reveal="1" class="glass p-6 md:p-7" @submit.prevent="submit">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-[15px] font-semibold">成绩信息</h2>
+            <span class="pill pill-sky">分数 → 位次</span>
+          </div>
+          <hr class="hairline my-5" />
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <div v-reveal="1">
+              <label class="field-label" for="province">省份代码</label>
+              <input id="province" v-model="form.provinceCode" class="field" placeholder="如 42 表示湖北" maxlength="6" />
+            </div>
+            <div v-reveal="2">
+              <label class="field-label" for="year">高考年份</label>
+              <input id="year" v-model.number="form.examYear" type="number" class="field" min="2000" max="2100" />
+            </div>
+            <div v-reveal="3">
+              <label class="field-label" for="mode">考试模式</label>
+              <select id="mode" v-model="form.examMode" class="field">
+                <option v-for="m in examModes" :key="m.value" :value="m.value">{{ m.label }}</option>
+              </select>
+            </div>
+            <div v-reveal="4">
+              <label class="field-label" for="category">科类</label>
+              <input id="category" v-model="form.category" class="field" placeholder="物理类 / 历史类 / 理科 / 文科" />
+            </div>
+            <div v-reveal="5" class="md:col-span-2">
+              <label class="field-label" for="total">总分</label>
+              <input id="total" v-model.number="form.totalScore" type="number" class="field md:max-w-[240px]" min="0" max="750" />
+            </div>
+          </div>
+
+          <div v-reveal="6" class="mt-6">
+            <p class="field-label">选科组合</p>
+            <div class="flex flex-wrap gap-2">
+              <label
+                v-for="s in subjectOptions"
+                :key="s"
+                class="chip"
+                :class="{ 'is-active': form.subjectCombo.includes(s) }"
+              >
+                <input v-model="form.subjectCombo" type="checkbox" :value="s" class="sr-only" />
+                {{ s }}
+              </label>
+            </div>
+          </div>
+
+          <hr class="hairline my-6" />
+          <div class="flex flex-wrap items-center gap-4">
+            <button type="submit" class="btn btn-primary">保存成绩档案 <span class="link-arrow">→</span></button>
+            <Transition name="page">
+              <span v-if="saved" class="tick flex items-center gap-2 text-[12px] muted">
+                <span class="inline-block h-1.5 w-1.5 rounded-full bg-accent"></span>
+                已保存到本地状态
+              </span>
+            </Transition>
+            <RouterLink v-if="saved" to="/match" class="link ml-auto text-[12px]">
+              前往智能匹配 →
+            </RouterLink>
+          </div>
+        </form>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.timeline-row { position: relative; display: grid; grid-template-columns: 42px 1fr; gap: 12px; padding: 14px 0; opacity: .55; transition: opacity .4s var(--ease), transform .4s var(--ease); }
+.timeline-row { position: relative; display: grid; grid-template-columns: 38px 1fr; gap: 10px; padding: 12px 0; opacity: .58; transition: opacity .35s var(--ease), transform .35s var(--ease); }
 .timeline-row.is-current { opacity: 1; }
-.timeline-row:hover { transform: translateX(5px); opacity: 1; }
-.timeline-row:not(:last-child)::after { content: ''; position: absolute; left: 15px; top: 42px; bottom: -4px; width: 1px; background: var(--line); }
-.timeline-no { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--line); font-size: 11px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.timeline-row:hover { transform: translateX(4px); opacity: 1; }
+.timeline-row:not(:last-child)::after { content: ''; position: absolute; left: 14px; top: 38px; bottom: -4px; width: 1px; background: var(--line); }
+.timeline-no { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); font-size: 11px; color: var(--text-2); font-variant-numeric: tabular-nums; }
 .is-current .timeline-no { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 </style>

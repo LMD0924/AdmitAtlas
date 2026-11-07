@@ -10,18 +10,18 @@ export default {
         faint: 'var(--text-3)',
         accent: 'var(--accent)',
         accentsoft: 'var(--accent-soft)',
-        surface: 'var(--glass)',
+        surface: 'var(--surface)',
         hairline: 'var(--line)',
-        brand: {
-          50: '#E6F1FB',
-          100: '#B5D4F4',
-          400: '#378ADD',
-          600: '#185FA5',
-          800: '#0C447C'
-        }
+        mint: 'var(--mint)',
+        sky: 'var(--sky)',
+        violet: 'var(--violet)',
+        amber: 'var(--amber)',
+        rose: 'var(--rose)',
+        teal: 'var(--teal)'
       },
       fontFamily: {
-        sans: ['Outfit', 'Geist', 'Satoshi', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'sans-serif']
+        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+        hand: ['Ma Shan Zheng', 'STXINGKAI', 'KaiTi', 'cursive']
       }
     }
   },
