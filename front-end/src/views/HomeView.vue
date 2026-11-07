@@ -59,9 +59,9 @@ onMounted(async () => {
     <section class="aa-card">
       <h2 class="text-base font-medium text-slate-800">当前阶段</h2>
       <p class="mt-2 text-sm leading-7 text-slate-600">
-        仓库处于 <span class="font-medium text-brand-800">P0 骨架阶段</span>：工程结构、网关路由、统一响应、
+        仓库处于 <span class="font-medium text-brand-800">P0 骨架阶段</span>：工程结构、统一 Web 入口、统一响应、
         DTO 契约与三种考试模式的策略工厂已就绪；数据采集与匹配算法为占位接口。
-        设计依据见 <span class="font-medium">docs/architecture-design.md</span>。
+        设计依据见 <span class="font-medium">docs/架构设计.md</span>。
       </p>
       <p class="mt-2 text-xs text-slate-400">所有建议仅供参考，最终以各省教育考试院公布数据为准。</p>
     </section>

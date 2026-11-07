@@ -107,7 +107,7 @@ function submit() {
     <div class="aa-card text-sm text-slate-600">
       <p class="font-medium text-slate-800">后端策略探测</p>
       <p v-if="modes.length" class="mt-2">已注册考试模式：<span class="text-brand-800">{{ modes.join(' · ') }}</span></p>
-      <p v-else class="mt-2 text-slate-400">未检测到后端，请先启动 gateway 与 match-engine。</p>
+      <p v-else class="mt-2 text-slate-400">未检测到后端，请先启动 launcher 应用（8080）。</p>
       <p class="mt-2 text-xs text-slate-400">位次换算接口（/api/v1/scores/convert-rank）将在 P1 实现。</p>
     </div>
   </div>
