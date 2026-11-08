@@ -102,7 +102,9 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
             {{ auth.isAdmin ? '管理员' : '学生' }}
           </span>
           <span class="avatar">{{ initial }}</span>
-          <span class="nav-user">{{ auth.displayName }}</span>
+          <RouterLink to="/profile" class="nav-user nav-user-link" title="个人中心">
+            {{ auth.displayName }}
+          </RouterLink>
           <button type="button" class="btn btn-slate" @click="doLogout">
             <span class="btn-glyph">↪</span> 退出
           </button>

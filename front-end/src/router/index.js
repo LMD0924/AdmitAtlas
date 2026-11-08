@@ -16,6 +16,12 @@ const routes = [
     meta: { title: '登录 / 注册' }
   },
   {
+    path: '/profile',
+    name: 'profile',
+    component: () => import('@/views/ProfileView.vue'),
+    meta: { title: '个人中心', requiresAuth: true }
+  },
+  {
     path: '/score',
     name: 'score-wizard',
     component: () => import('@/views/ScoreWizardView.vue'),

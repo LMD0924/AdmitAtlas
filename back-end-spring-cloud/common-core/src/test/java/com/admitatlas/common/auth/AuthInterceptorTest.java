@@ -74,7 +74,8 @@ class AuthInterceptorTest {
     @DisplayName("游客访问成绩 / 方案 / 匹配返回 401")
     void protectedNeedsLogin() {
         for (String uri : new String[]{"/api/v1/student/scores", "/api/v1/plans",
-                "/api/v1/match/analyze", "/api/v1/auth/logout"}) {
+                "/api/v1/match/analyze", "/api/v1/auth/logout",
+                "/api/v1/users/profile", "/api/v1/users/password"}) {
             AuthContext.clear();
             BizException ex = assertThrows(BizException.class, () -> handle(uri, null), uri);
             assertEquals(ResultCode.UNAUTHORIZED.getCode(), ex.getCode());
@@ -104,6 +105,20 @@ class AuthInterceptorTest {
         assertDoesNotThrow(() -> handle("/api/v1/admin/users", adminToken()));
         assertTrue(AuthContext.isAdmin());
         assertEquals(8L, AuthContext.userId());
+    }
+
+    @Test
+    @DisplayName("个人中心需登录，但 /users/me 仍对游客开放")
+    void profileProtectedButMePublic() {
+        assertDoesNotThrow(() -> handle("/api/v1/users/me", null));
+        assertNull(AuthContext.get());
+        AuthContext.clear();
+        BizException ex = assertThrows(BizException.class,
+                () -> handle("/api/v1/users/profile", null));
+        assertEquals(ResultCode.UNAUTHORIZED.getCode(), ex.getCode());
+        AuthContext.clear();
+        assertDoesNotThrow(() -> handle("/api/v1/users/profile", studentToken()));
+        assertEquals(7L, AuthContext.userId());
     }
 
     @Test

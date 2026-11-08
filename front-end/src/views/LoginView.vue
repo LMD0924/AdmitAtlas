@@ -23,6 +23,7 @@ const demos = [
 ]
 
 const adminHint = computed(() => route.query.reason === 'admin')
+const passwordHint = computed(() => route.query.reason === 'password')
 
 function fill(demo) {
   mode.value = 'login'
@@ -129,6 +130,9 @@ async function submit() {
 
         <div v-if="adminHint" class="mb-4 rounded-xl border border-hairline bg-[var(--amber-bg)] px-4 py-3 text-[12px] leading-6 text-[var(--amber)]">
           该页面仅管理员可用，请用管理员账号登录后返回。
+        </div>
+        <div v-if="passwordHint" class="mb-4 rounded-xl border border-hairline bg-[var(--mint-bg)] px-4 py-3 text-[12px] leading-6 text-[var(--mint)]">
+          密码修改成功，旧会话已失效。请用新密码登录，登录后会自动返回个人中心。
         </div>
 
         <form class="space-y-4" @submit.prevent="submit">

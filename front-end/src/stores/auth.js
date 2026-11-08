@@ -76,6 +76,13 @@ export const useAuthStore = defineStore('auth', {
       localStorage.setItem(USER_KEY, JSON.stringify(data.user))
     },
 
+    /** 个人中心改昵称 / 省份后同步导航栏与本地会话，不换发 token。 */
+    applyUser(user) {
+      if (!user) return
+      this.user = { ...this.user, ...user }
+      localStorage.setItem(USER_KEY, JSON.stringify(this.user))
+    },
+
     clear() {
       this.token = ''
       this.user = null

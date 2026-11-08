@@ -15,6 +15,11 @@ export const register = (payload) => request.post(`${V1}/auth/register`, payload
 export const logoutApi = () => request.post(`${V1}/auth/logout`)
 export const getAuthMe = () => request.get(`${V1}/auth/me`)
 
+// ---------------------------------------------------------------- 个人中心（需登录）
+export const getProfile = () => request.get(`${V1}/users/profile`)
+export const updateProfile = (payload) => request.put(`${V1}/users/profile`, payload)
+export const changePassword = (payload) => request.post(`${V1}/users/password`, payload)
+
 // ---------------------------------------------------------------- 管理端（需 ADMIN）
 export const getAdminOverview = () => request.get(`${V1}/admin/overview`)
 export const getAdminUsers = (params) => request.get(`${V1}/admin/users`, { params })

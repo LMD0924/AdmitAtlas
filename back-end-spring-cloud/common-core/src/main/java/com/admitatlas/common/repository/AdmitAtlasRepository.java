@@ -315,6 +315,41 @@ public class AdmitAtlasRepository {
         return id;
     }
 
+    /** F-C-02：个人中心只允许改展示名与生源地，角色 / 用户名 / 状态不在这里更新。 */
+    public void updateUserProfile(long id, String displayName, String provinceCode) {
+        jdbc.update("UPDATE student_profile SET display_name = ?, province_code = ? WHERE id = ?",
+                displayName, provinceCode, id);
+    }
+
+    /** 个人中心「我的数据」四项计数，全部按 user_id 隔离。 */
+    public Map<String, Integer> userStats(long userId) {
+        Map<String, Integer> out = new java.util.LinkedHashMap<>();
+        out.put("scoreCount", countByUser(
+                "SELECT COUNT(*) FROM student_score WHERE user_id = ?", userId));
+        out.put("taskCount", countByUser(
+                "SELECT COUNT(*) FROM match_task WHERE user_id = ?", userId));
+        out.put("planCount", countByUser(
+                "SELECT COUNT(*) FROM suggestion_plan WHERE user_id = ?", userId));
+        out.put("itemCount", countByUser(
+                "SELECT COUNT(*) FROM suggestion_item i "
+                        + "JOIN suggestion_plan p ON p.plan_id = i.plan_id "
+                        + "WHERE p.user_id = ?", userId));
+        return out;
+    }
+
+    /** 当前用户最近的匹配任务；跨账号核查走 recentTasks，两者不可混用。 */
+    public List<Models.TaskRecord> tasksByUser(long userId, int limit) {
+        return jdbc.query("SELECT task_id, user_id, province_code, exam_year, task_status, "
+                        + "data_version, created_at FROM match_task WHERE user_id = ? "
+                        + "ORDER BY created_at DESC, task_id DESC LIMIT ?",
+                this::taskRow, userId, Math.min(20, Math.max(1, limit)));
+    }
+
+    private int countByUser(String sql, long userId) {
+        Integer n = jdbc.queryForObject(sql, Integer.class, userId);
+        return n == null ? 0 : n;
+    }
+
     /** 停用 / 启用同时递增 token_version，让该账号已签发的 token 立即失效。 */
     public void updateUserStatus(long id, String status) {
         jdbc.update("UPDATE student_profile SET account_status = ?, "

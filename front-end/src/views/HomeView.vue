@@ -121,7 +121,8 @@ onUnmounted(() => timer && window.clearInterval(timer))
         <RouterLink to="/plan" class="btn btn-amber"><span class="btn-glyph">▤</span> 志愿方案</RouterLink>
         <RouterLink to="/schools" class="btn btn-violet"><span class="btn-glyph">⌕</span> 院校库</RouterLink>
         <RouterLink v-if="auth.isAdmin" to="/admin" class="btn btn-rose"><span class="btn-glyph">▦</span> 管理后台</RouterLink>
-        <RouterLink v-else-if="!auth.isLoggedIn" to="/login" class="btn btn-teal"><span class="btn-glyph">→</span> 学生 / 管理员登录</RouterLink>
+        <RouterLink v-if="auth.isLoggedIn" to="/profile" class="btn btn-teal"><span class="btn-glyph">◉</span> 个人中心</RouterLink>
+        <RouterLink v-if="!auth.isLoggedIn" to="/login" class="btn btn-slate"><span class="btn-glyph">→</span> 学生 / 管理员登录</RouterLink>
       </div>
       <p v-if="!auth.isLoggedIn" class="muted mt-4 text-center text-[11px]">
         游客可浏览首页、院校库与公开规则；录入成绩、智能匹配与保存方案需登录学生账号。
