@@ -108,6 +108,22 @@ onUnmounted(() => timer && window.clearInterval(timer))
         <span>已完成 1 / 4 阶段 · P0 骨架</span>
         <span :style="probeState === 'error' ? { color: 'var(--rose)' } : null">{{ backendStatus }}</span>
       </div>
+
+      <!-- colour-coded outlined actions: each button has its own border/text/icon colour -->
+      <div v-reveal="3" class="btn-group mt-8 justify-center">
+        <RouterLink to="/score" class="btn btn-mint">
+          <span class="btn-glyph">✎</span> 录入成绩
+        </RouterLink>
+        <RouterLink to="/match" class="btn btn-blue">
+          <span class="btn-glyph">◎</span> 智能匹配
+        </RouterLink>
+        <RouterLink to="/plan" class="btn btn-amber">
+          <span class="btn-glyph">▤</span> 志愿方案
+        </RouterLink>
+        <RouterLink to="/schools" class="btn btn-violet">
+          <span class="btn-glyph">⌕</span> 院校库
+        </RouterLink>
+      </div>
     </section>
 
     <!-- light paper cards -->
@@ -167,8 +183,8 @@ onUnmounted(() => timer && window.clearInterval(timer))
           完整功能与验收口径见 <span class="link">docs/功能清单.md</span>。
         </p>
       </div>
-      <RouterLink to="/match" class="btn btn-ghost">
-        查看匹配引擎 <span class="link-arrow">→</span>
+      <RouterLink to="/match" class="btn btn-teal">
+        <span class="btn-glyph">◎</span> 查看匹配引擎 <span class="link-arrow">→</span>
       </RouterLink>
     </section>
 

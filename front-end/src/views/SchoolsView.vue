@@ -21,16 +21,30 @@ const emptyText = computed(() =>
 function search() {
   searched.value = keyword.value.trim().length > 0
 }
+
+function clear() {
+  keyword.value = ''
+  searched.value = false
+  activeFilter.value = '全部'
+}
 </script>
 
 <template>
   <div class="space-y-6">
-    <div>
-      <p v-reveal="0" class="eyebrow">School archive / 资源中枢</p>
-      <h1 v-reveal="1" class="mt-2 text-[22px] font-semibold tracking-[-0.02em]">全国高校，一张可检索的地图</h1>
-      <p v-reveal="2" class="mt-2 max-w-[76ch] text-[12px] leading-6 muted">
-        按层次、地域、类型检索院校档案与历年录取趋势。数据版本、来源与更新时间随结果一同公示。
-      </p>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p v-reveal="0" class="eyebrow">School archive / 资源中枢</p>
+        <h1 v-reveal="1" class="mt-2 text-[22px] font-semibold tracking-[-0.02em]">全国高校，一张可检索的地图</h1>
+        <p v-reveal="2" class="mt-2 max-w-[76ch] text-[12px] leading-6 muted">
+          按层次、地域、类型检索院校档案与历年录取趋势。数据版本、来源与更新时间随结果一同公示。
+        </p>
+      </div>
+      <div v-reveal="2" class="btn-group">
+        <RouterLink to="/" class="btn btn-slate">← 返回概览</RouterLink>
+        <RouterLink to="/match" class="btn btn-teal">
+          <span class="btn-glyph">◎</span> 智能匹配
+        </RouterLink>
+      </div>
     </div>
 
     <div v-reveal="0" class="glass p-6 md:p-7">
@@ -42,7 +56,12 @@ function search() {
           aria-label="院校检索"
           @keyup.enter="search"
         />
-        <button class="btn btn-primary" @click="search">检索 <span class="link-arrow">→</span></button>
+        <button class="btn btn-blue" type="button" @click="search">
+          <span class="btn-glyph">⌕</span> 检索 <span class="link-arrow">→</span>
+        </button>
+        <button class="btn btn-rose" type="button" @click="clear">
+          <span class="btn-glyph">✕</span> 清空
+        </button>
       </div>
       <div class="mt-4 flex flex-wrap gap-2">
         <button

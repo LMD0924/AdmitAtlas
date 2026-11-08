@@ -32,15 +32,23 @@ const summary = computed(() => [
           位次换算 → 规则过滤 → 候选检索 → 风险打分 → 冲稳保分档
         </p>
       </div>
-      <button
-        v-reveal="2"
-        class="btn btn-primary"
-        :disabled="loading || !store.hasScore"
-        @click="run()"
-      >
-        {{ loading ? '匹配中…' : '开始匹配' }}
-        <span class="link-arrow">→</span>
-      </button>
+      <div v-reveal="2" class="btn-group">
+        <RouterLink to="/score" class="btn btn-mint">
+          <span class="btn-glyph">✎</span> 录入成绩
+        </RouterLink>
+        <RouterLink to="/plan" class="btn btn-amber">
+          <span class="btn-glyph">▤</span> 志愿方案
+        </RouterLink>
+        <button
+          class="btn btn-violet"
+          :disabled="loading || !store.hasScore"
+          @click="run()"
+        >
+          <span class="btn-glyph">◎</span>
+          {{ loading ? '匹配中…' : '开始匹配' }}
+          <span class="link-arrow">→</span>
+        </button>
+      </div>
     </div>
 
     <div v-reveal="0" class="glass grid grid-cols-2 gap-x-6 gap-y-4 p-5 md:grid-cols-5">

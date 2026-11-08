@@ -16,12 +16,22 @@ const distribution = [
 
 <template>
   <div class="space-y-6">
-    <div>
-      <p v-reveal="0" class="eyebrow">Volunteer plan</p>
-      <h1 v-reveal="1" class="mt-2 text-[22px] font-semibold tracking-[-0.02em]">把选择排成有梯度的顺序</h1>
-      <p v-reveal="2" class="mt-2 max-w-[76ch] text-[12px] leading-6 muted">
-        按本省志愿结构生成，可拖拽调序、校验数量并导出。志愿单位与数量均由规则配置驱动。
-      </p>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p v-reveal="0" class="eyebrow">Volunteer plan</p>
+        <h1 v-reveal="1" class="mt-2 text-[22px] font-semibold tracking-[-0.02em]">把选择排成有梯度的顺序</h1>
+        <p v-reveal="2" class="mt-2 max-w-[76ch] text-[12px] leading-6 muted">
+          按本省志愿结构生成，可拖拽调序、校验数量并导出。志愿单位与数量均由规则配置驱动。
+        </p>
+      </div>
+      <div v-reveal="2" class="btn-group">
+        <RouterLink to="/score" class="btn btn-mint">
+          <span class="btn-glyph">✎</span> 成绩录入
+        </RouterLink>
+        <RouterLink to="/match" class="btn btn-violet">
+          <span class="btn-glyph">◎</span> 智能匹配
+        </RouterLink>
+      </div>
     </div>
 
     <div class="grid gap-4 lg:grid-cols-12">
@@ -74,7 +84,9 @@ const distribution = [
     <div v-reveal="0" class="glass overflow-hidden">
       <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
         <h2 class="text-[15px] font-semibold">志愿表</h2>
-        <RouterLink to="/match" class="link text-[12px]">从匹配结果添加 →</RouterLink>
+        <RouterLink to="/match" class="btn btn-blue">
+          <span class="btn-glyph">＋</span> 从匹配结果添加 <span class="link-arrow">→</span>
+        </RouterLink>
       </div>
       <div class="overflow-x-auto">
         <table class="data-table min-w-[620px]">

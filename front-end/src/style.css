@@ -75,6 +75,15 @@
   --bao-bg: #e8f7ef;
   --bao-text: #2f9d6a;
 
+  /* outlined colour-coded buttons: border + text + icon share one colour */
+  --btn-blue: #3767e8;    --btn-blue-bg: #f4f8ff;
+  --btn-mint: #12996a;    --btn-mint-bg: #eefaf3;
+  --btn-violet: #7c4de0;  --btn-violet-bg: #f7f2ff;
+  --btn-amber: #c98713;   --btn-amber-bg: #fff9ec;
+  --btn-rose: #d9464e;    --btn-rose-bg: #fff4f4;
+  --btn-teal: #0f9b90;    --btn-teal-bg: #edfaf8;
+  --btn-slate: #6b778c;   --btn-slate-bg: #f8fafd;
+
   --loader-bg: rgba(248, 250, 255, 0.86);
   --orb-a: var(--halo-a);
   --orb-b: var(--halo-b);
@@ -139,6 +148,14 @@
   --wen-text: #e8c37b;
   --bao-bg: rgba(47, 157, 106, 0.16);
   --bao-text: #8ed7b0;
+
+  --btn-blue: #8fb0ff;    --btn-blue-bg: rgba(90, 130, 255, 0.10);
+  --btn-mint: #6fd6a3;    --btn-mint-bg: rgba(24, 165, 109, 0.10);
+  --btn-violet: #bda4ff;  --btn-violet-bg: rgba(139, 92, 246, 0.10);
+  --btn-amber: #f0c073;   --btn-amber-bg: rgba(227, 150, 32, 0.10);
+  --btn-rose: #f0a0a0;    --btn-rose-bg: rgba(226, 99, 99, 0.10);
+  --btn-teal: #7fd8cf;    --btn-teal-bg: rgba(20, 168, 154, 0.10);
+  --btn-slate: #9aa8bd;   --btn-slate-bg: rgba(154, 168, 189, 0.08);
 
   --loader-bg: rgba(12, 16, 24, 0.84);
 }
@@ -226,35 +243,62 @@ a { color: inherit; text-decoration: none; }
 .type-caret { display: inline-block; width: 1px; height: 1.05em; margin-left: 3px; vertical-align: -.16em; background: var(--accent); animation: caret 1s steps(1) infinite; }
 @keyframes caret { 50% { opacity: 0; } }
 
-/* ---------- buttons ---------- */
+/* ---------- buttons: outlined, colour-coded (PathForge) ----------
+   Every button uses the SAME colour for border, label and icon.
+   Different actions get different colours — no all-blue filled buttons.
+   The only filled button is .btn-solid, reserved for a modal's final confirm. */
 .btn {
-  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 9px 16px; border-radius: 10px; font-size: 13px; font-weight: 500;
-  border: 1px solid transparent; cursor: pointer; overflow: hidden; isolation: isolate;
+  --btn-c: var(--btn-slate);
+  --btn-bg: var(--btn-slate-bg);
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  min-height: 34px; padding: 7px 13px; border-radius: 10px;
+  font-size: 12.5px; font-weight: 600; line-height: 1;
+  color: var(--btn-c);
+  background: var(--btn-bg);
+  border: 1px solid var(--btn-c);
+  cursor: pointer; white-space: nowrap;
   transition: transform .3s var(--ease), background-color .3s var(--ease), color .3s var(--ease),
-              border-color .3s var(--ease), box-shadow .3s var(--ease);
+              border-color .3s var(--ease), box-shadow .3s var(--ease), opacity .3s var(--ease);
 }
-.btn:active { transform: scale(.98); }
-.btn-primary { background: var(--accent); color: var(--on-accent); box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 22%, transparent); }
-.btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); }
-.btn-primary::after {
-  content: ''; position: absolute; inset: 0; z-index: -1;
-  background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.24) 50%, transparent 65%);
-  transform: translateX(-130%); transition: transform .7s var(--ease);
+.btn > svg { width: 13px; height: 13px; flex: none; color: var(--btn-c); }
+.btn .btn-glyph { font-size: 12px; line-height: 1; color: var(--btn-c); }
+.btn:hover {
+  transform: translateY(-2px);
+  background: color-mix(in srgb, var(--btn-c) 11%, var(--surface));
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--btn-c) 18%, transparent);
 }
-.btn-primary:hover::after { transform: translateX(130%); }
-.btn-ghost { background: var(--surface); border-color: var(--line); color: var(--text-2); }
-.btn-ghost:hover { border-color: var(--accent); color: var(--accent-text); transform: translateY(-2px); }
-.btn-quiet { background: transparent; color: var(--link); padding: 8px 10px; }
-.btn-quiet:hover { text-decoration: underline; text-underline-offset: 4px; }
-.btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .42; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* one colour per action */
+.btn-blue   { --btn-c: var(--btn-blue);   --btn-bg: var(--btn-blue-bg); }
+.btn-mint   { --btn-c: var(--btn-mint);   --btn-bg: var(--btn-mint-bg); }
+.btn-violet { --btn-c: var(--btn-violet); --btn-bg: var(--btn-violet-bg); }
+.btn-amber  { --btn-c: var(--btn-amber);  --btn-bg: var(--btn-amber-bg); }
+.btn-rose   { --btn-c: var(--btn-rose);   --btn-bg: var(--btn-rose-bg); }
+.btn-teal   { --btn-c: var(--btn-teal);   --btn-bg: var(--btn-teal-bg); }
+.btn-slate  { --btn-c: var(--btn-slate);  --btn-bg: var(--btn-slate-bg); }
+
+/* backwards-compatible aliases — all resolve to outlined buttons */
+.btn-primary { --btn-c: var(--btn-blue); --btn-bg: var(--btn-blue-bg); }
+.btn-ghost  { --btn-c: var(--btn-slate); --btn-bg: var(--surface); }
+.btn-quiet  { --btn-c: var(--link); background: transparent; border-color: transparent; padding: 8px 10px; }
+.btn-quiet:hover { background: transparent; box-shadow: none; text-decoration: underline; text-underline-offset: 4px; }
+.btn-solid {
+  --btn-c: var(--accent); --btn-bg: var(--accent);
+  color: var(--on-accent); border-color: var(--accent);
+}
+.btn-solid:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--on-accent); }
+.btn-solid > svg { color: var(--on-accent); }
+.btn-group { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+
 .btn-icon {
   display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px;
-  border-radius: 50%; border: 1px solid var(--line); background: var(--surface);
-  color: var(--text-2); cursor: pointer;
+  border-radius: 50%; border: 1px solid var(--btn-slate); background: var(--surface);
+  color: var(--btn-slate); cursor: pointer;
   transition: transform .4s var(--ease), color .3s, border-color .3s, background-color .3s;
 }
-.btn-icon:hover { color: var(--accent-text); border-color: var(--accent); transform: rotate(18deg); }
+.btn-icon:hover { color: var(--btn-blue); border-color: var(--btn-blue); transform: rotate(18deg); }
 .btn-icon svg { width: 15px; height: 15px; transition: transform .45s var(--ease); }
 
 /* ---------- form ---------- */
@@ -275,8 +319,8 @@ a { color: inherit; text-decoration: none; }
   font-size: 12px; cursor: pointer; user-select: none;
   transition: transform .3s var(--ease), border-color .3s, background-color .3s, color .3s;
 }
-.chip:hover { transform: translateY(-2px); border-color: var(--accent); }
-.chip.is-active { background: var(--accent-soft); border-color: color-mix(in srgb, var(--accent) 45%, transparent); color: var(--accent-text); }
+.chip:hover { transform: translateY(-2px); border-color: var(--btn-blue); color: var(--btn-blue); }
+.chip.is-active { background: var(--btn-blue-bg); border-color: var(--btn-blue); color: var(--btn-blue); }
 
 /* ---------- pills / tags / badges ---------- */
 .tag { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 500; }

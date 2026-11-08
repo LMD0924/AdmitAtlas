@@ -53,16 +53,38 @@ function submit() {
   })
   saved.value = true
 }
+
+function reset() {
+  Object.assign(form, {
+    provinceCode: store.provinceCode || '42',
+    examYear: store.examYear,
+    examMode: store.examMode,
+    category: store.category,
+    totalScore: store.totalScore ?? 612,
+    subjectCombo: [...store.subjectCombo]
+  })
+  saved.value = false
+}
 </script>
 
 <template>
   <div class="space-y-7">
-    <div>
-      <p v-reveal="0" class="eyebrow">Step 01 / 成绩档案</p>
-      <h1 v-reveal="1" class="mt-2 text-[22px] font-semibold tracking-[-0.02em]">先让分数变得可比</h1>
-      <p v-reveal="2" class="mt-2 max-w-[76ch] text-[12px] leading-6 muted">
-        分数本身不参与跨年比较。录入后系统会换算为省排名（位次），再用位次去对照历年投档线。
-      </p>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p v-reveal="0" class="eyebrow">Step 01 / 成绩档案</p>
+        <h1 v-reveal="1" class="mt-2 text-[22px] font-semibold tracking-[-0.02em]">先让分数变得可比</h1>
+        <p v-reveal="2" class="mt-2 max-w-[76ch] text-[12px] leading-6 muted">
+          分数本身不参与跨年比较。录入后系统会换算为省排名（位次），再用位次去对照历年投档线。
+        </p>
+      </div>
+      <div v-reveal="2" class="btn-group">
+        <RouterLink to="/match" class="btn btn-blue">
+          <span class="btn-glyph">◎</span> 智能匹配
+        </RouterLink>
+        <RouterLink to="/plan" class="btn btn-amber">
+          <span class="btn-glyph">▤</span> 志愿方案
+        </RouterLink>
+      </div>
     </div>
 
     <div class="grid gap-4 lg:grid-cols-12">
@@ -148,16 +170,21 @@ function submit() {
           </div>
 
           <hr class="hairline my-6" />
-          <div class="flex flex-wrap items-center gap-4">
-            <button type="submit" class="btn btn-primary">保存成绩档案 <span class="link-arrow">→</span></button>
+          <div class="flex flex-wrap items-center gap-3">
+            <button type="submit" class="btn btn-mint">
+              <span class="btn-glyph">✓</span> 保存成绩档案 <span class="link-arrow">→</span>
+            </button>
+            <button type="button" class="btn btn-rose" @click="reset">
+              <span class="btn-glyph">✕</span> 重置
+            </button>
             <Transition name="page">
               <span v-if="saved" class="tick flex items-center gap-2 text-[12px] muted">
                 <span class="inline-block h-1.5 w-1.5 rounded-full bg-accent"></span>
                 已保存到本地状态
               </span>
             </Transition>
-            <RouterLink v-if="saved" to="/match" class="link ml-auto text-[12px]">
-              前往智能匹配 →
+            <RouterLink v-if="saved" to="/match" class="btn btn-blue ml-auto">
+              <span class="btn-glyph">◎</span> 前往智能匹配 <span class="link-arrow">→</span>
             </RouterLink>
           </div>
         </form>
