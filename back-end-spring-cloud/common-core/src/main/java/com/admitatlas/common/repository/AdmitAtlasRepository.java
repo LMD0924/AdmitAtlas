@@ -11,6 +11,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -269,6 +270,168 @@ public class AdmitAtlasRepository {
                 this::planItemRow, planId);
     }
 
+    // -------------------------------------------------------------- accounts & roles
+
+    public Optional<Models.UserAccount> userByUsername(String username) {
+        return first(jdbc.query("SELECT id, username, password_hash, display_name, province_code, "
+                        + "user_role, account_status, token_version, last_login_at, created_at "
+                        + "FROM student_profile WHERE username = ?",
+                this::userAccountRow, username));
+    }
+
+    public Optional<Models.UserAccount> userById(long id) {
+        return first(jdbc.query("SELECT id, username, password_hash, display_name, province_code, "
+                        + "user_role, account_status, token_version, last_login_at, created_at "
+                        + "FROM student_profile WHERE id = ?",
+                this::userAccountRow, id));
+    }
+
+    public List<Models.UserAccount> users(String role, String keyword) {
+        StringBuilder sql = new StringBuilder("SELECT id, username, password_hash, display_name, "
+                + "province_code, user_role, account_status, token_version, last_login_at, created_at "
+                + "FROM student_profile WHERE 1=1");
+        List<Object> args = new ArrayList<>();
+        if (has(role)) {
+            sql.append(" AND user_role = ?");
+            args.add(role.trim());
+        }
+        if (has(keyword)) {
+            sql.append(" AND (username LIKE ? OR display_name LIKE ?)");
+            String like = "%" + keyword.trim() + "%";
+            args.add(like);
+            args.add(like);
+        }
+        sql.append(" ORDER BY id LIMIT 200");
+        return jdbc.query(sql.toString(), this::userAccountRow, args.toArray());
+    }
+
+    public long createUser(String username, String passwordHash, String displayName,
+                           String provinceCode, String role) {
+        long id = com.admitatlas.common.support.Ids.next();
+        jdbc.update("INSERT INTO student_profile (id, username, password_hash, display_name, "
+                        + "province_code, user_role, account_status, token_version) "
+                        + "VALUES (?,?,?,?,?,?,'ACTIVE',0)",
+                id, username, passwordHash, displayName, provinceCode, role);
+        return id;
+    }
+
+    /** 停用 / 启用同时递增 token_version，让该账号已签发的 token 立即失效。 */
+    public void updateUserStatus(long id, String status) {
+        jdbc.update("UPDATE student_profile SET account_status = ?, "
+                + "token_version = token_version + 1 WHERE id = ?", status, id);
+    }
+
+    /** 重置密码同样使旧 token 全部失效。 */
+    public void updatePassword(long id, String passwordHash) {
+        jdbc.update("UPDATE student_profile SET password_hash = ?, "
+                + "token_version = token_version + 1 WHERE id = ?", passwordHash, id);
+    }
+
+    /** 退出登录：只递增版本号，不落黑名单表，保持无状态 JWT。 */
+    public void bumpTokenVersion(long id) {
+        jdbc.update("UPDATE student_profile SET token_version = token_version + 1 WHERE id = ?", id);
+    }
+
+    public void touchLogin(long id) {
+        jdbc.update("UPDATE student_profile SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?", id);
+    }
+
+    // -------------------------------------------------------------- audit & version registry
+
+    public void writeAudit(Long operatorId, String operatorName, String action,
+                           String targetType, String targetId, String detail) {
+        jdbc.update("INSERT INTO audit_log (id, operator_id, operator_name, action, "
+                        + "target_type, target_id, detail) VALUES (?,?,?,?,?,?,?)",
+                com.admitatlas.common.support.Ids.next(), operatorId, operatorName,
+                action, targetType, targetId, detail);
+    }
+
+    public List<Models.AuditLog> auditLogs(int limit) {
+        return jdbc.query("SELECT id, operator_id, operator_name, action, target_type, "
+                        + "target_id, detail, created_at FROM audit_log "
+                        + "ORDER BY id DESC LIMIT ?",
+                this::auditRow, Math.min(200, Math.max(1, limit)));
+    }
+
+    public List<Models.DataVersionEntry> dataVersions() {
+        return jdbc.query("SELECT data_version, status, coverage_note, demo_data, "
+                + "activated_by, activated_at FROM data_version_registry "
+                + "ORDER BY data_version DESC", this::dataVersionRow);
+    }
+
+    @Transactional
+    public void activateDataVersion(String version, String operator) {
+        jdbc.update("UPDATE data_version_registry SET status = 'ARCHIVED' WHERE status = 'ACTIVE'");
+        int updated = jdbc.update("UPDATE data_version_registry SET status = 'ACTIVE', "
+                + "activated_by = ?, activated_at = CURRENT_TIMESTAMP WHERE data_version = ?",
+                operator, version);
+        if (updated == 0) {
+            jdbc.update("INSERT INTO data_version_registry (data_version, status, coverage_note, "
+                            + "demo_data, activated_by, activated_at) "
+                            + "VALUES (?, 'ACTIVE', '管理员手动登记的版本', 1, ?, CURRENT_TIMESTAMP)",
+                    version, operator);
+        }
+    }
+
+    // -------------------------------------------------------------- admin maintenance
+
+    public int updatePolicy(String provinceCode, int year, String volunteerUnit,
+                            int volunteerCount, String batches) {
+        return jdbc.update("UPDATE rule_policy SET volunteer_unit = ?, volunteer_count = ?, "
+                        + "batches = ? WHERE province_code = ? AND exam_year = ?",
+                volunteerUnit, volunteerCount, batches, provinceCode, year);
+    }
+
+    /** 院校档案维护：先更新，不存在再插入，避开 MySQL-only 的 ON DUPLICATE KEY。 */
+    @Transactional
+    public void upsertSchool(String code, String name, String supervisor, String provinceCode,
+                             String city, String tierTags, String schoolType,
+                             String schoolLevel, String intro) {
+        int updated = jdbc.update("UPDATE dim_school SET school_name = ?, supervisor = ?, "
+                        + "province_code = ?, city = ?, tier_tags = ?, school_type = ?, "
+                        + "school_level = ?, intro = ? WHERE school_code = ?",
+                name, supervisor, provinceCode, city, tierTags, schoolType, schoolLevel,
+                intro, code);
+        if (updated == 0) {
+            jdbc.update("INSERT INTO dim_school (school_code, school_name, supervisor, "
+                            + "province_code, city, tier_tags, school_type, school_level, intro) "
+                            + "VALUES (?,?,?,?,?,?,?,?,?)",
+                    code, name, supervisor, provinceCode, city, tierTags, schoolType,
+                    schoolLevel, intro);
+        }
+    }
+
+    /** B 端只读：跨账号查看方案 / 匹配任务，用于运营核查，不返回给 C 端。 */
+    public List<Models.PlanRecord> allPlans(int limit) {
+        return jdbc.query("SELECT plan_id, user_id, task_id, plan_name, volunteer_unit, "
+                        + "volunteer_count, data_version, created_at FROM suggestion_plan "
+                        + "ORDER BY plan_id DESC LIMIT ?",
+                this::planRow, Math.min(100, Math.max(1, limit)));
+    }
+
+    public List<Models.TaskRecord> recentTasks(int limit) {
+        return jdbc.query("SELECT task_id, user_id, province_code, exam_year, task_status, "
+                        + "data_version, created_at FROM match_task ORDER BY created_at DESC "
+                        + "LIMIT ?", this::taskRow, Math.min(100, Math.max(1, limit)));
+    }
+
+    /** 后台概览计数：表名固定白名单，禁止外部拼接。 */
+    public Map<String, Integer> adminCounts() {
+        Map<String, Integer> out = new java.util.LinkedHashMap<>();
+        for (String table : List.of("student_profile", "student_score", "match_task",
+                "suggestion_plan", "audit_log", "dim_school", "fact_admission_score",
+                "rule_policy")) {
+            out.put(table, count(table));
+        }
+        Integer admins = jdbc.queryForObject("SELECT COUNT(*) FROM student_profile "
+                + "WHERE user_role = 'ADMIN'", Integer.class);
+        Integer students = jdbc.queryForObject("SELECT COUNT(*) FROM student_profile "
+                + "WHERE user_role = 'STUDENT'", Integer.class);
+        out.put("admins", admins == null ? 0 : admins);
+        out.put("students", students == null ? 0 : students);
+        return out;
+    }
+
     // -------------------------------------------------------------- meta
 
     public String latestDataVersion() {
@@ -421,5 +584,27 @@ public class AdmitAtlasRepository {
                 rs.getString("group_or_major_code"), rs.getString("unit_name"),
                 rs.getString("tier"), rs.getInt("match_score"),
                 nullableInt(rs, "history_min_rank"), rs.getString("reason"));
+    }
+
+    private Models.UserAccount userAccountRow(ResultSet rs, int i) throws SQLException {
+        return new Models.UserAccount(rs.getLong("id"), rs.getString("username"),
+                rs.getString("password_hash"), rs.getString("display_name"),
+                rs.getString("province_code"), rs.getString("user_role"),
+                rs.getString("account_status"), rs.getInt("token_version"),
+                rs.getString("last_login_at"), rs.getString("created_at"));
+    }
+
+    private Models.AuditLog auditRow(ResultSet rs, int i) throws SQLException {
+        long operator = rs.getLong("operator_id");
+        return new Models.AuditLog(rs.getLong("id"), rs.wasNull() ? null : operator,
+                rs.getString("operator_name"), rs.getString("action"),
+                rs.getString("target_type"), rs.getString("target_id"),
+                rs.getString("detail"), rs.getString("created_at"));
+    }
+
+    private Models.DataVersionEntry dataVersionRow(ResultSet rs, int i) throws SQLException {
+        return new Models.DataVersionEntry(rs.getString("data_version"), rs.getString("status"),
+                rs.getString("coverage_note"), rs.getInt("demo_data") == 1,
+                rs.getString("activated_by"), rs.getString("activated_at"));
     }
 }

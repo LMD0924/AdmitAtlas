@@ -3,11 +3,14 @@ package com.admitatlas.match;
 import com.admitatlas.api.dto.MatchRequestDTO;
 import com.admitatlas.api.dto.MatchResultDTO;
 import com.admitatlas.api.dto.ScoreInputDTO;
+import com.admitatlas.common.auth.AuthContext;
+import com.admitatlas.common.auth.AuthUser;
 import com.admitatlas.common.model.Models;
 import com.admitatlas.common.repository.AdmitAtlasRepository;
 import com.admitatlas.common.support.Json;
 import com.admitatlas.match.strategy.MatchStrategy;
 import com.admitatlas.match.strategy.MatchStrategyFactory;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -74,8 +77,14 @@ class MatchServiceTest {
                 null, frontendRank, Map.of());
     }
 
+    @AfterEach
+    void tearDown() {
+        AuthContext.clear();
+    }
+
     @BeforeEach
     void setUp() {
+        AuthContext.set(new AuthUser(1L, "demo", "演示学生", "STUDENT", "42"));
         repo = mock(AdmitAtlasRepository.class);
         MatchStrategyFactory factory = mock(MatchStrategyFactory.class);
         when(factory.of(MODE)).thenReturn(mock(MatchStrategy.class));

@@ -2,6 +2,7 @@ package com.admitatlas.plan;
 
 import com.admitatlas.api.dto.PlanSaveRequestDTO;
 import com.admitatlas.common.Result;
+import com.admitatlas.common.auth.AuthContext;
 import com.admitatlas.common.model.Models;
 import com.admitatlas.common.repository.AdmitAtlasRepository;
 import org.springframework.http.HttpHeaders;
@@ -23,8 +24,6 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/plans")
 public class PlanController {
-
-    private static final long DEMO_USER_ID = 1L;
 
     private final PlanService planService;
     private final AdmitAtlasRepository repo;
@@ -59,7 +58,7 @@ public class PlanController {
     @GetMapping
     public Result<Map<String, Object>> list() {
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("items", repo.plans(DEMO_USER_ID));
+        data.put("items", repo.plans(AuthContext.userId()));
         data.put("dataVersion", repo.latestDataVersion());
         return Result.ok(data);
     }
@@ -69,6 +68,7 @@ public class PlanController {
         Models.PlanRecord plan = repo.plan(id)
                 .orElseThrow(() -> new com.admitatlas.common.BizException(
                         com.admitatlas.common.ResultCode.NOT_FOUND, "未找到方案: " + id));
+        PlanService.assertOwner(plan);
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("plan", plan);
         data.put("items", repo.planItems(id));

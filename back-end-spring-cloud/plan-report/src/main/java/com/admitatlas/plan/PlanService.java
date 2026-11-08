@@ -4,6 +4,7 @@ import com.admitatlas.api.dto.PlanSaveRequestDTO;
 import com.admitatlas.common.BizException;
 import com.admitatlas.common.Disclaimer;
 import com.admitatlas.common.ResultCode;
+import com.admitatlas.common.auth.AuthContext;
 import com.admitatlas.common.model.Models;
 import com.admitatlas.common.repository.AdmitAtlasRepository;
 import com.admitatlas.common.support.SubjectRequirements;
@@ -27,7 +28,6 @@ import java.util.Set;
 @Service
 public class PlanService {
 
-    private static final long DEMO_USER_ID = 1L;
     private static final DateTimeFormatter TS =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
@@ -159,7 +159,7 @@ public class PlanService {
         String province = req.provinceCode() == null ? "42" : req.provinceCode();
         int year = req.examYear() == null ? 2026 : req.examYear();
         String dataVersion = String.valueOf(check.get("dataVersion"));
-        Models.PlanRecord plan = new Models.PlanRecord(0L, DEMO_USER_ID, req.taskId(),
+        Models.PlanRecord plan = new Models.PlanRecord(0L, AuthContext.userId(), req.taskId(),
                 req.planName() == null || req.planName().isBlank()
                         ? "我的志愿方案" : req.planName(),
                 String.valueOf(check.get("volunteerUnit")),
@@ -180,10 +180,19 @@ public class PlanService {
     }
 
     /** F-C-43 / F-S-10：CSV（Excel 可直接打开），强制包含数据版本与免责声明。 */
+    /** F-S-02：学生只能读写自己的方案；管理员在后台可以查阅全部。 */
+    public static void assertOwner(Models.PlanRecord plan) {
+        var user = AuthContext.require();
+        if (plan.userId() != user.id() && !user.isAdmin()) {
+            throw new BizException(ResultCode.FORBIDDEN, "无权访问其他账号的志愿方案");
+        }
+    }
+
     public byte[] exportCsv(long planId) {
         Models.PlanRecord plan = repo.plan(planId)
                 .orElseThrow(() -> new BizException(ResultCode.NOT_FOUND,
                         "未找到方案: " + planId));
+        assertOwner(plan);
         List<Models.PlanItemRecord> items = repo.planItems(planId);
         StringBuilder sb = new StringBuilder();
         sb.append('\uFEFF');   // UTF-8 BOM，避免 Excel 中文乱码

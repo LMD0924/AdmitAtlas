@@ -49,6 +49,10 @@ admitatlas:
   # 演示种子数据：非真实录取数据，页面与导出文件都会显式标注
   demo-data: true
   data-version: demo-2026-hb-v1
+  auth:
+    # 生产必须通过 ADMITATLAS_AUTH_SECRET 覆盖；默认值仅供本地演示，切勿用于线上。
+    secret: ${ADMITATLAS_AUTH_SECRET:admitatlas-dev-only-secret-please-change-2026}
+    token-hours: 12
   match:
     # 用近 N 年历史投档数据做对比（不含当年，当年录取尚未发生）
     history-years: 3

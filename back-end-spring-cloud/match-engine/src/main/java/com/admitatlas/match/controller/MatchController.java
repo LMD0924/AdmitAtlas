@@ -5,6 +5,7 @@ import com.admitatlas.api.dto.MatchResultDTO;
 import com.admitatlas.common.BizException;
 import com.admitatlas.common.Result;
 import com.admitatlas.common.ResultCode;
+import com.admitatlas.common.auth.AuthContext;
 import com.admitatlas.common.model.Models;
 import com.admitatlas.common.repository.AdmitAtlasRepository;
 import com.admitatlas.match.MatchService;
@@ -65,6 +66,10 @@ public class MatchController {
         Models.TaskRecord task = repo.task(taskId)
                 .orElseThrow(() -> new BizException(ResultCode.NOT_FOUND,
                         "未找到匹配任务: " + taskId));
+        var user = AuthContext.require();
+        if (task.userId() != user.id() && !user.isAdmin()) {
+            throw new BizException(ResultCode.FORBIDDEN, "无权查看其他账号的匹配任务");
+        }
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("taskId", task.taskId());
         data.put("status", task.status());

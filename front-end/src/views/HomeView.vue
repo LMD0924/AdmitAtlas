@@ -1,6 +1,9 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { getOverview, getStrategies } from '@/api'
+import { useAuthStore } from '@/stores/auth'
+
+const auth = useAuthStore()
 
 const steps = [
   { no: '01', title: '录入成绩', desc: '省份、年份、选科、总分与单科分，按一分一段表换算为可比对的省排名' },
@@ -100,7 +103,9 @@ onUnmounted(() => timer && window.clearInterval(timer))
           <span class="pill" :class="overview?.demoData ? 'pill-amber' : 'pill-mint'">
             {{ overview?.demoData ? '演示数据' : `版本 ${overview?.dataVersion || '—'}` }}
           </span>
-          <RouterLink to="/score" class="link text-[12px]">开始录入 →</RouterLink>
+          <RouterLink :to="auth.isLoggedIn ? '/score' : '/login'" class="link text-[12px]">
+            {{ auth.isLoggedIn ? '开始录入 →' : '登录后录入 →' }}
+          </RouterLink>
         </span>
       </div>
 
@@ -115,7 +120,12 @@ onUnmounted(() => timer && window.clearInterval(timer))
         <RouterLink to="/match" class="btn btn-blue"><span class="btn-glyph">◎</span> 智能匹配</RouterLink>
         <RouterLink to="/plan" class="btn btn-amber"><span class="btn-glyph">▤</span> 志愿方案</RouterLink>
         <RouterLink to="/schools" class="btn btn-violet"><span class="btn-glyph">⌕</span> 院校库</RouterLink>
+        <RouterLink v-if="auth.isAdmin" to="/admin" class="btn btn-rose"><span class="btn-glyph">▦</span> 管理后台</RouterLink>
+        <RouterLink v-else-if="!auth.isLoggedIn" to="/login" class="btn btn-teal"><span class="btn-glyph">→</span> 学生 / 管理员登录</RouterLink>
       </div>
+      <p v-if="!auth.isLoggedIn" class="muted mt-4 text-center text-[11px]">
+        游客可浏览首页、院校库与公开规则；录入成绩、智能匹配与保存方案需登录学生账号。
+      </p>
     </section>
 
     <section class="grid gap-4 lg:grid-cols-12">

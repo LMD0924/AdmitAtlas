@@ -4,6 +4,7 @@ import com.admitatlas.api.dto.ScoreInputDTO;
 import com.admitatlas.common.BizException;
 import com.admitatlas.common.Result;
 import com.admitatlas.common.ResultCode;
+import com.admitatlas.common.auth.AuthContext;
 import com.admitatlas.common.model.Models;
 import com.admitatlas.common.repository.AdmitAtlasRepository;
 import com.admitatlas.common.support.RankCalculator;
@@ -19,20 +20,19 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 成绩档案。P1 未接登录，统一挂到演示账号 id=1；
- * 保存成绩时同步完成位次换算，避免前端把 rank 传进来（契约禁止前端指定位次）。
+ * 成绩档案。P2 起写入方为当前登录用户（AuthContext），保存成绩时服务端自动换算位次，
+ * 前端不得指定 rank。游客访问由 AuthInterceptor 在 /api/v1/student/** 处拦截为 401。
  */
 @RestController
 @RequestMapping("/api/v1")
 public class StudentController {
 
-    /** 演示账号；接入 JWT 后替换为 SecurityContext 中的用户 id。 */
-    public static final long DEMO_USER_ID = 1L;
-
     private final AdmitAtlasRepository repo;
+    private final AuthService authService;
 
-    public StudentController(AdmitAtlasRepository repo) {
+    public StudentController(AdmitAtlasRepository repo, AuthService authService) {
         this.repo = repo;
+        this.authService = authService;
     }
 
     /** F-C-01 / F-C-04 / F-C-08：保存成绩档案并自动换算位次。 */
@@ -56,7 +56,7 @@ public class StudentController {
         Models.RankResult rank = RankCalculator.convert(
                 segments, score.totalScore(), repo.latestDataVersion());
 
-        long id = repo.saveScore(DEMO_USER_ID, score.provinceCode(), score.examYear(),
+        long id = repo.saveScore(AuthContext.userId(), score.provinceCode(), score.examYear(),
                 score.examMode(), category, combo, score.totalScore(), subjectScores,
                 rank.rank(), rank.estimated());
 
@@ -72,27 +72,32 @@ public class StudentController {
         return Result.ok(data);
     }
 
-    /** 读取最近一份成绩档案（含换算后的位次）。 */
+    /** 读取当前用户最近一份成绩档案（含换算后的位次）。 */
     @GetMapping("/student/scores")
     public Result<Map<String, Object>> latestScore(
             @RequestParam(defaultValue = "2026") int examYear) {
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("profile", repo.latestScore(DEMO_USER_ID, examYear).orElse(null));
+        data.put("profile", repo.latestScore(AuthContext.userId(), examYear).orElse(null));
         data.put("dataVersion", repo.latestDataVersion());
         return Result.ok(data);
     }
 
-    /** F-S-01/02 占位：P1 未接登录，返回固定的演示用户。 */
+    /** 兼容 P1 前端的 /users/me：现在返回真实身份，游客返回 guest。 */
     @GetMapping("/users/me")
     public Result<Map<String, Object>> me() {
+        var user = authService.current();
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("id", DEMO_USER_ID);
-        data.put("username", "demo");
-        data.put("displayName", "访客");
-        data.put("provinceCode", "42");
-        data.put("role", "STUDENT");
+        data.put("id", user.id());
+        data.put("username", user.username());
+        data.put("displayName", user.displayName());
+        data.put("provinceCode", user.provinceCode());
+        data.put("role", user.role());
+        data.put("admin", user.admin());
+        data.put("guest", user.guest());
         data.put("loginRequired", false);
-        data.put("note", "P1 单省试点未接入登录鉴权，使用演示账号");
+        data.put("note", user.guest()
+                ? "游客可浏览公开数据；录入成绩、智能匹配与保存方案需登录学生账号"
+                : "已登录；成绩与方案按账号隔离");
         return Result.ok(data);
     }
 }

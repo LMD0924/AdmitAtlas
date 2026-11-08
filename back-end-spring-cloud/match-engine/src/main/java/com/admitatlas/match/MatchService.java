@@ -3,6 +3,7 @@ package com.admitatlas.match;
 import com.admitatlas.api.dto.MatchRequestDTO;
 import com.admitatlas.api.dto.MatchResultDTO;
 import com.admitatlas.api.dto.ScoreInputDTO;
+import com.admitatlas.common.auth.AuthContext;
 import com.admitatlas.common.model.Models;
 import com.admitatlas.common.repository.AdmitAtlasRepository;
 import com.admitatlas.common.support.Ids;
@@ -35,9 +36,6 @@ import java.util.stream.IntStream;
 public class MatchService {
 
     public static final String DISCLAIMER = com.admitatlas.common.Disclaimer.TEXT;
-
-    /** 与 auth-user 的演示账号一致；P1 未接登录，接入 JWT 后从安全上下文取。 */
-    private static final long DEMO_USER_ID = 1L;
 
     private final AdmitAtlasRepository repo;
     private final MatchStrategyFactory factory;
@@ -253,7 +251,7 @@ public class MatchService {
         }
 
         String taskId = Ids.taskId();
-        repo.saveTask(taskId, DEMO_USER_ID,
+        repo.saveTask(taskId, AuthContext.userId(),
                 province, year, "DONE", Json.write(Map.of(
                         "provinceCode", province, "examYear", year, "category", category,
                         "totalScore", score.totalScore(), "examMode", examMode)), dataVersion);

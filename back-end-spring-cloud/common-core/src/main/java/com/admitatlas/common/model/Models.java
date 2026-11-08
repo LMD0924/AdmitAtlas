@@ -89,4 +89,20 @@ public final class Models {
                               int majorCount, int admissionRowCount, int segmentRowCount,
                               int policyCount, String sourceNote) {
     }
+
+    /** F-S-01/02、F-B-22：账号与角色。role 目前只有 STUDENT / ADMIN 两种。 */
+    public record UserAccount(long id, String username, String passwordHash, String displayName,
+                              String provinceCode, String role, String status, int tokenVersion,
+                              String lastLoginAt, String createdAt) {
+    }
+
+    /** F-S-09：B 端关键写操作留痕。 */
+    public record AuditLog(long id, Long operatorId, String operatorName, String action,
+                           String targetType, String targetId, String detail, String createdAt) {
+    }
+
+    /** F-B-17/20：数据版本登记与在线状态。 */
+    public record DataVersionEntry(String dataVersion, String status, String coverageNote,
+                                   boolean demoData, String activatedBy, String activatedAt) {
+    }
 }

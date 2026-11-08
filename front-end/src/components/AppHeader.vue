@@ -1,11 +1,20 @@
 <script setup>
-import { onMounted, onUnmounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useTheme } from '@/composables/useTheme'
+import { useAuthStore } from '@/stores/auth'
 
 const { theme, toggleTheme } = useTheme()
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
 const scrolled = ref(false)
+const initial = computed(() => (auth.displayName || 'A').slice(0, 1).toUpperCase())
+
+async function doLogout() {
+  await auth.logout()
+  router.push('/')
+}
 
 // outline icon path data (24x24)
 const icons = {
@@ -13,16 +22,22 @@ const icons = {
   edit: 'M4 20h4l10.5-10.5a2 2 0 0 0-4-4L4 16v4ZM14 6l4 4',
   target: 'M12 3a9 9 0 1 0 9 9M12 7a5 5 0 1 0 5 5M12 11a1 1 0 1 0 1 1',
   list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
-  search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16.5 16.5 21 21'
+  search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16.5 16.5 21 21',
+  grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'
 }
 
-const links = [
+const baseLinks = [
   { to: '/', label: '概览', icon: icons.home },
   { to: '/score', label: '成绩录入', icon: icons.edit },
   { to: '/match', label: '智能匹配', icon: icons.target },
   { to: '/plan', label: '志愿方案', icon: icons.list },
   { to: '/schools', label: '资源中枢', icon: icons.search }
 ]
+
+// 管理后台入口放进主导航，避免 nav-actions 里叠太多按钮把导航挤窄。
+const links = computed(() => auth.isAdmin
+  ? [...baseLinks, { to: '/admin', label: '管理后台', icon: icons.grid }]
+  : baseLinks)
 
 function onScroll() {
   scrolled.value = window.scrollY > 28
@@ -52,7 +67,10 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
           :key="link.to"
           :to="link.to"
           class="nav-link"
-          :class="{ 'is-active': route.path === link.to }"
+          :class="{
+            'is-active': link.to === '/admin' ? route.path.startsWith('/admin') : route.path === link.to,
+            'is-admin-link': link.to === '/admin'
+          }"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path :d="link.icon" />
@@ -78,8 +96,23 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
           </svg>
         </button>
         <span class="nav-divider"></span>
-        <span class="avatar">A</span>
-        <span class="nav-user">访客</span>
+
+        <template v-if="auth.isLoggedIn">
+          <span class="pill" :class="auth.isAdmin ? 'pill-violet' : 'pill-mint'">
+            {{ auth.isAdmin ? '管理员' : '学生' }}
+          </span>
+          <span class="avatar">{{ initial }}</span>
+          <span class="nav-user">{{ auth.displayName }}</span>
+          <button type="button" class="btn btn-slate" @click="doLogout">
+            <span class="btn-glyph">↪</span> 退出
+          </button>
+        </template>
+        <template v-else>
+          <span class="pill pill-neutral">游客</span>
+          <RouterLink to="/login" class="btn btn-blue">
+            <span class="btn-glyph">→</span> 登录
+          </RouterLink>
+        </template>
       </div>
     </div>
   </header>

@@ -9,6 +9,33 @@ export const getDataVersion = () => request.get(`${V1}/system/data-version`)
 export const getDictionaries = () => request.get(`${V1}/dictionaries`)
 export const getMe = () => request.get(`${V1}/users/me`)
 
+// ---------------------------------------------------------------- 认证 / 双身份
+export const login = (payload) => request.post(`${V1}/auth/login`, payload)
+export const register = (payload) => request.post(`${V1}/auth/register`, payload)
+export const logoutApi = () => request.post(`${V1}/auth/logout`)
+export const getAuthMe = () => request.get(`${V1}/auth/me`)
+
+// ---------------------------------------------------------------- 管理端（需 ADMIN）
+export const getAdminOverview = () => request.get(`${V1}/admin/overview`)
+export const getAdminUsers = (params) => request.get(`${V1}/admin/users`, { params })
+export const createAdminUser = (payload) => request.post(`${V1}/admin/users`, payload)
+export const setUserStatus = (id, status) =>
+  request.post(`${V1}/admin/users/${id}/status`, { status })
+export const resetUserPassword = (id, password) =>
+  request.post(`${V1}/admin/users/${id}/reset-password`, { password })
+export const getAdminAudit = (params) => request.get(`${V1}/admin/audit-logs`, { params })
+export const getAdminVersions = () => request.get(`${V1}/admin/data-versions`)
+export const activateVersion = (version) =>
+  request.post(`${V1}/admin/data-versions/${version}/activate`)
+export const getAdminPolicies = () => request.get(`${V1}/admin/policies`)
+export const updateAdminPolicy = (province, year, payload) =>
+  request.put(`${V1}/admin/policies/${province}/${year}`, payload)
+export const getAdminSchools = (params) => request.get(`${V1}/admin/schools`, { params })
+export const updateAdminSchool = (code, payload) =>
+  request.put(`${V1}/admin/schools/${code}`, payload)
+export const getAdminPlans = (params) => request.get(`${V1}/admin/plans`, { params })
+export const getAdminTasks = (params) => request.get(`${V1}/admin/match-tasks`, { params })
+
 // ---------------------------------------------------------------- 成绩 / 分数
 export const saveStudentScore = (payload) => request.post(`${V1}/student/scores`, payload)
 export const getStudentScore = (params) => request.get(`${V1}/student/scores`, { params })

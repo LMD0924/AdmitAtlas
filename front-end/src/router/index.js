@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { startRouteLoading, stopRouteLoading } from '@/composables/useRouteLoading'
+import { useAuthStore } from '@/stores/auth'
 
 const routes = [
   {
@@ -9,28 +10,77 @@ const routes = [
     meta: { title: '首页' }
   },
   {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/views/LoginView.vue'),
+    meta: { title: '登录 / 注册' }
+  },
+  {
     path: '/score',
     name: 'score-wizard',
     component: () => import('@/views/ScoreWizardView.vue'),
-    meta: { title: '成绩录入' }
+    meta: { title: '成绩录入', requiresAuth: true }
   },
   {
     path: '/match',
     name: 'match',
     component: () => import('@/views/MatchView.vue'),
-    meta: { title: '智能匹配' }
+    meta: { title: '智能匹配', requiresAuth: true }
   },
   {
     path: '/plan',
     name: 'plan',
     component: () => import('@/views/PlanView.vue'),
-    meta: { title: '志愿方案' }
+    meta: { title: '志愿方案', requiresAuth: true }
   },
   {
     path: '/schools',
     name: 'schools',
     component: () => import('@/views/SchoolsView.vue'),
     meta: { title: '院校库' }
+  },
+  {
+    path: '/admin',
+    component: () => import('@/views/admin/AdminLayout.vue'),
+    meta: { title: '管理后台', requiresAdmin: true },
+    children: [
+      {
+        path: '',
+        name: 'admin-overview',
+        component: () => import('@/views/admin/AdminOverviewView.vue'),
+        meta: { title: '后台概览', requiresAdmin: true }
+      },
+      {
+        path: 'users',
+        name: 'admin-users',
+        component: () => import('@/views/admin/AdminUsersView.vue'),
+        meta: { title: '用户与角色', requiresAdmin: true }
+      },
+      {
+        path: 'rules',
+        name: 'admin-rules',
+        component: () => import('@/views/admin/AdminRulesView.vue'),
+        meta: { title: '志愿规则', requiresAdmin: true }
+      },
+      {
+        path: 'schools',
+        name: 'admin-schools',
+        component: () => import('@/views/admin/AdminSchoolsView.vue'),
+        meta: { title: '院校档案', requiresAdmin: true }
+      },
+      {
+        path: 'data',
+        name: 'admin-data',
+        component: () => import('@/views/admin/AdminDataView.vue'),
+        meta: { title: '数据版本', requiresAdmin: true }
+      },
+      {
+        path: 'audit',
+        name: 'admin-audit',
+        component: () => import('@/views/admin/AdminAuditView.vue'),
+        meta: { title: '操作审计', requiresAdmin: true }
+      }
+    ]
   },
   {
     path: '/:pathMatch(.*)*',
@@ -48,9 +98,26 @@ const router = createRouter({
 
 let firstNavigation = true
 
-router.beforeEach((to, from) => {
+/**
+ * 游客可浏览首页与院校库；成绩 / 匹配 / 方案需登录；/admin/** 仅 ADMIN。
+ * 权限不足统一带 redirect 跳登录页，登录后原路返回。
+ */
+router.beforeEach(async (to, from) => {
   if (!firstNavigation && to.fullPath !== from.fullPath) startRouteLoading()
   firstNavigation = false
+
+  const auth = useAuthStore()
+  if (!auth.ready) await auth.bootstrap()
+
+  if (to.meta.requiresAdmin && !auth.isAdmin) {
+    stopRouteLoading()
+    return { path: '/login', query: { redirect: to.fullPath, reason: 'admin' } }
+  }
+  if (to.meta.requiresAuth && !auth.isLoggedIn) {
+    stopRouteLoading()
+    return { path: '/login', query: { redirect: to.fullPath } }
+  }
+  return true
 })
 
 router.afterEach((to) => {

@@ -2,8 +2,11 @@ package com.admitatlas.plan;
 
 import com.admitatlas.api.dto.PlanSaveRequestDTO;
 import com.admitatlas.common.BizException;
+import com.admitatlas.common.auth.AuthContext;
+import com.admitatlas.common.auth.AuthUser;
 import com.admitatlas.common.model.Models;
 import com.admitatlas.common.repository.AdmitAtlasRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -59,8 +62,14 @@ class PlanServiceTest {
         return (List<String>) check.get("warnings");
     }
 
+    @AfterEach
+    void tearDown() {
+        AuthContext.clear();
+    }
+
     @BeforeEach
     void setUp() {
+        AuthContext.set(new AuthUser(1L, "demo", "演示学生", "STUDENT", "42"));
         repo = mock(AdmitAtlasRepository.class);
         when(repo.policy(PROVINCE, YEAR)).thenReturn(Optional.of(
                 new Models.RulePolicy(PROVINCE, YEAR, "GROUP_3_1_2", "SCHOOL_GROUP",
