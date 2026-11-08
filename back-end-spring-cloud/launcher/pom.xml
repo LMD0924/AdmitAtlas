@@ -65,6 +65,22 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+
+        <!-- 数据库迁移：dev 用 H2 文件库直接可跑，prod 切换到 MySQL 8 -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <!-- Spring Cloud / Nacos 依赖保留但默认关闭：未来拆分微服务时按需启用 -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>

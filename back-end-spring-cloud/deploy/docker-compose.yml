@@ -10,7 +10,9 @@ services:
       - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
-      - ./sql/V1__init.sql:/docker-entrypoint-initdb.d/V1__init.sql:ro
+      # P1 起 schema 由 Flyway 统一管理（launcher/src/main/resources/db/migration/），
+      # 不再通过 initdb 挂载建表，避免与 Flyway 迁移重复执行。
+      # ../sql/V1__init.sql 是 MySQL 分区优化版 DDL，仅供生产手动调优时参考。
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_0900_ai_ci
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p${MYSQL_ROOT_PASSWORD:-admitatlas_dev}"]

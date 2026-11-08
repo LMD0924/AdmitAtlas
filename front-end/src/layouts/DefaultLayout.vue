@@ -1,6 +1,13 @@
 <script setup>
+import { onMounted, ref } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import RouteLoader from '@/components/RouteLoader.vue'
+import { getDataVersion } from '@/api'
+
+const version = ref(null)
+onMounted(async () => {
+  try { version.value = await getDataVersion() } catch { /* 后端未启动时页脚降级显示 */ }
+})
 </script>
 
 <template>
@@ -24,11 +31,13 @@ import RouteLoader from '@/components/RouteLoader.vue'
 
     <footer class="mx-auto mb-5 w-[calc(100%-2.5rem)] max-w-[1200px] border-t border-hairline px-2 py-5 md:w-[calc(100%-4rem)]">
       <div class="flex flex-wrap items-center justify-between gap-3 text-[12px] leading-6 muted">
-        <span class="flex items-center gap-2">
+        <span class="flex flex-wrap items-center gap-2">
           <span class="pulse-dot inline-block h-1.5 w-1.5 rounded-full bg-accent"></span>
-          AdmitAtlas · P0 骨架阶段，数据与匹配算法尚未上线
+          AdmitAtlas · P1 单省试点
+          <span v-if="version?.demoData" class="pill pill-amber">演示数据（合成值）</span>
+          <span v-if="version" class="faint">版本 {{ version.dataVersion }} · {{ version.admissionRowCount }} 条投档记录</span>
         </span>
-        <span class="faint">所有建议仅供参考，以各省教育考试院公布数据为准 · MIT © 2026 LMD0924</span>
+        <span class="faint">仅输出匹配度与风险等级，不构成录取承诺 · 以各省教育考试院公布为准 · MIT © 2026 LMD0924</span>
       </div>
     </footer>
   </div>

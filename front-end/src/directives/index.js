@@ -55,22 +55,31 @@ export const spotlight = {
   }
 }
 
-/** v-count="112" — count up once the number enters the viewport */
+/**
+ * v-count="112" — count up once the number enters the viewport.
+ * The bound value is often loaded asynchronously (overview / rule policy),
+ * so the target is kept on the element and re-applied via `updated`.
+ */
 export const count = {
   mounted(el, binding) {
-    const target = Number(binding.value) || 0
-    const duration = 1150
-    if (reducedMotion()) {
-      el.textContent = String(target)
-      return
-    }
-    const run = () => {
+    el.__aaCountTarget = Number(binding.value) || 0
+    el.__aaCountStarted = false
+    el.__aaCountRun = () => {
+      el.__aaCountStarted = true
+      if (el.__aaRaf) cancelAnimationFrame(el.__aaRaf)
+      const target = el.__aaCountTarget
+      if (reducedMotion()) {
+        el.textContent = String(target)
+        return
+      }
+      const from = Number(String(el.textContent).replace(/[^\d.-]/g, '')) || 0
+      const duration = 1150
       let start = null
       const step = (ts) => {
         if (start === null) start = ts
         const progress = Math.min((ts - start) / duration, 1)
         const eased = 1 - Math.pow(1 - progress, 3)
-        el.textContent = String(Math.round(target * eased))
+        el.textContent = String(Math.round(from + (target - from) * eased))
         if (progress < 1) el.__aaRaf = requestAnimationFrame(step)
       }
       el.__aaRaf = requestAnimationFrame(step)
@@ -84,8 +93,14 @@ export const count = {
         })
       }, { threshold: 0.4 })
     }
-    el.__aaCountRun = run
     countObserver.observe(el)
+  },
+  updated(el, binding) {
+    const next = Number(binding.value) || 0
+    if (next === el.__aaCountTarget) return
+    el.__aaCountTarget = next
+    // 已进入视口：从当前显示值平滑过渡到新值；否则等 observer 首次触发时读取最新 target
+    if (el.__aaCountStarted) el.__aaCountRun?.()
   },
   unmounted(el) {
     countObserver?.unobserve(el)

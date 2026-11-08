@@ -4,10 +4,25 @@ server:
 spring:
   application:
     name: admitatlas
+  # 默认 dev：H2 文件库 + Flyway 自动建表灌演示数据，java -jar 即可跑通全链路，无需 Docker。
+  # 生产用 --spring.profiles.active=mysql 切换到 application-mysql.yml（MySQL 8）。
+  datasource:
+    url: jdbc:h2:file:./data/admitatlas;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ''
+    driver-class-name: org.h2.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    clean-disabled: true
+  h2:
+    console:
+      enabled: false
   cloud:
     nacos:
       discovery:
-        # P0 单体内不需要服务注册；拆分微服务时改为 true 并启动 Nacos
+        # 单体内不需要服务注册；拆分微服务时改为 true 并启动 Nacos
         enabled: false
         server-addr: 127.0.0.1:8848
       config:
@@ -16,6 +31,8 @@ spring:
     resources:
       # 前后端分离，后端不托管静态资源，避免 404 走资源处理器
       add-mappings: false
+  jackson:
+    default-property-inclusion: non_null
 
 management:
   endpoints:
@@ -27,6 +44,19 @@ management:
       show-details: always
 
 admitatlas:
-  stage: P0-skeleton
-  data-version: uninitialized
+  stage: P1-pilot
   deploy-mode: single-application
+  # 演示种子数据：非真实录取数据，页面与导出文件都会显式标注
+  demo-data: true
+  data-version: demo-2026-hb-v1
+  match:
+    # 用近 N 年历史投档数据做对比（不含当年，当年录取尚未发生）
+    history-years: 3
+    # 候选召回位次窗口：[rank * low, rank * high]，走 idx_query 索引
+    rank-window-low: 0.55
+    rank-window-high: 1.9
+    # 冲 / 稳 / 保 边界：rel = (历史加权位次 - 考生位次) / 考生位次
+    # rel 越小越难（历史门槛位次小于考生位次），越大越稳
+    chong-boundary: -0.10
+    bao-boundary: 0.15
+    max-candidates: 60

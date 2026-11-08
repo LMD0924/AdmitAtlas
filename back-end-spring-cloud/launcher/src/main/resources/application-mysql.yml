@@ -1,0 +1,18 @@
+# 生产配置：--spring.profiles.active=mysql
+# 连接信息一律走环境变量，不写入仓库。
+spring:
+  datasource:
+    url: ${ADMITATLAS_DB_URL:jdbc:mysql://127.0.0.1:3306/admitatlas?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${ADMITATLAS_DB_USER:admitatlas}
+    password: ${ADMITATLAS_DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    clean-disabled: true
+
+admitatlas:
+  # 生产环境必须使用经过审核发布的真实数据版本
+  demo-data: false
+  data-version: ${ADMITATLAS_DATA_VERSION:unset}

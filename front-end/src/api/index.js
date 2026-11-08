@@ -2,20 +2,59 @@ import request from '@/utils/request'
 
 const V1 = '/v1'
 
-/** 匹配引擎：已实现的策略列表（P0 可用于联调） */
+// ---------------------------------------------------------------- 系统 / 元数据
 export const getStrategies = () => request.get(`${V1}/match/strategies`)
+export const getOverview = () => request.get(`${V1}/system/overview`)
+export const getDataVersion = () => request.get(`${V1}/system/data-version`)
+export const getDictionaries = () => request.get(`${V1}/dictionaries`)
+export const getMe = () => request.get(`${V1}/users/me`)
 
-/** 智能匹配：P0 返回 501 占位，P1 实现算法 */
-export const analyzeMatch = (payload) => request.post(`${V1}/match/analyze`, payload)
-
-/** 分数换算位次：P1 实现 */
+// ---------------------------------------------------------------- 成绩 / 分数
+export const saveStudentScore = (payload) => request.post(`${V1}/student/scores`, payload)
+export const getStudentScore = (params) => request.get(`${V1}/student/scores`, { params })
 export const convertRank = (payload) => request.post(`${V1}/scores/convert-rank`, payload)
-
 export const getSegments = (params) => request.get(`${V1}/segments`, { params })
 export const getBatchLines = (params) => request.get(`${V1}/batch-lines`, { params })
 export const getAdmissionScores = (params) => request.get(`${V1}/admission/scores`, { params })
+
+// ---------------------------------------------------------------- 院校 / 专业
 export const getSchools = (params) => request.get(`${V1}/schools`, { params })
-export const getSchool = (code) => request.get(`${V1}/schools/${code}`)
+export const getSchool = (code, params) => request.get(`${V1}/schools/${code}`, { params })
 export const getMajors = (params) => request.get(`${V1}/majors`, { params })
+
+// ---------------------------------------------------------------- 规则 / 校验
 export const getPolicy = (params) => request.get(`${V1}/rules/policy`, { params })
+export const getPolicyBook = (province, params) =>
+  request.get(`${V1}/policies/${province}`, { params })
+export const validateCombo = (payload) =>
+  request.post(`${V1}/rules/subject-combo/validate`, payload)
+export const validatePlanItems = (payload) =>
+  request.post(`${V1}/rules/plan-items/validate`, payload)
+
+// ---------------------------------------------------------------- 匹配
+export const analyzeMatch = (payload) => request.post(`${V1}/match/analyze`, payload)
+export const getMatchTask = (taskId) => request.get(`${V1}/match/tasks/${taskId}`)
+
+// ---------------------------------------------------------------- 志愿方案
+export const validatePlan = (payload) => request.post(`${V1}/plans/validate`, payload)
 export const savePlan = (payload) => request.post(`${V1}/plans`, payload)
+export const getPlans = () => request.get(`${V1}/plans`)
+export const getPlan = (id) => request.get(`${V1}/plans/${id}`)
+
+/** 导出走原生下载（响应是二进制 CSV，不走统一响应解包）。 */
+export async function downloadPlan(id, filename) {
+  const token = localStorage.getItem('admitatlas_token')
+  const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || '/api'}${V1}/plans/${id}/export?format=csv`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {}
+  })
+  if (!res.ok) throw new Error('导出失败，请先保存方案')
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename || `AdmitAtlas-志愿方案-${id}.csv`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
