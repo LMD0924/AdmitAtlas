@@ -27,7 +27,7 @@ class AuthInterceptorTest {
 
     private static Models.UserAccount account(long id, String role, int version) {
         return new Models.UserAccount(id, role.equals("ADMIN") ? "admin" : "student",
-                "hash", "演示账号", "42", role, "ACTIVE", version, null, null);
+                "hash", "演示账号", "42", role, "ACTIVE", version, null, null, null);
     }
 
     private final Models.UserAccount student = account(7L, "STUDENT", 3);

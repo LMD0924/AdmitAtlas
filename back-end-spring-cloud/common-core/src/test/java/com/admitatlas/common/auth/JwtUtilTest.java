@@ -14,7 +14,7 @@ class JwtUtilTest {
 
     private static Models.UserAccount account(String role) {
         return new Models.UserAccount(7L, "student", "hash", "试点学生", "42",
-                role, "ACTIVE", 3, null, null);
+                role, "ACTIVE", 3, null, null, null);
     }
 
     @Test

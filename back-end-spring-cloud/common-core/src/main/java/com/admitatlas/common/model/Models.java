@@ -93,7 +93,7 @@ public final class Models {
     /** F-S-01/02、F-B-22：账号与角色。role 目前只有 STUDENT / ADMIN 两种。 */
     public record UserAccount(long id, String username, String passwordHash, String displayName,
                               String provinceCode, String role, String status, int tokenVersion,
-                              String lastLoginAt, String createdAt) {
+                              String lastLoginAt, String createdAt, String avatarUrl) {
     }
 
     /** F-S-09：B 端关键写操作留痕。 */

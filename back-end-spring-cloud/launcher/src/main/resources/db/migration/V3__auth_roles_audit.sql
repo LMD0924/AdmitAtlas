@@ -45,7 +45,7 @@ CREATE TABLE data_version_registry (
 );
 
 UPDATE student_profile
-   SET password_hash  = 'pbkdf2$120000$N5EJQ5kOV1h9wwOT3UCoQw$rdwN1b6JuKa3Wu76EcLK8TTFRDwdLN7Cuzv3mSVOVxY',
+   SET password_hash  = 'pbkdf2$120000$WtyiCb4oSJtHTJVoIU1u4g$0x86ukJ640zLnvuqXXggKTc5q66mf8sc_hYC4kss27I',
        display_name   = '演示学生',
        account_status = 'ACTIVE',
        token_version  = 0
@@ -54,13 +54,13 @@ UPDATE student_profile
 INSERT INTO student_profile (id, username, password_hash, province_code, user_role,
                              display_name, account_status, token_version)
 VALUES (2, 'student',
-        'pbkdf2$120000$95dOsEPokXYSDoKzF3r1ng$ONieE0vLhvbM_u_HLJyU8-8-jrMvC7ubJ4If-ybrm2s',
+        'pbkdf2$120000$RiMVLhCa2BAg26rB2mNAng$WGs3sK3IxdzMy8-sFlhpXVwCL7LE5eRpYqr8izCi5V0',
         '42', 'STUDENT', '试点学生', 'ACTIVE', 0);
 
 INSERT INTO student_profile (id, username, password_hash, province_code, user_role,
                              display_name, account_status, token_version)
 VALUES (3, 'admin',
-        'pbkdf2$120000$oep-1W_NAkuej4M5WVS8ig$eeoNCcOQAW2uI4fW7yGx05w4O6wAdcFxbhxZ5Uyyyz8',
+        'pbkdf2$120000$M3edsr5nP5dkNj7TjV8Cfg$d8dWbxAUoRxoqp4Z3q8iyI1foQ1rF8Zz3UFQc0Zw99k',
         '42', 'ADMIN', '数据管理员', 'ACTIVE', 0);
 
 INSERT INTO data_version_registry (data_version, status, coverage_note, demo_data,

@@ -45,6 +45,7 @@ logs/
 *.pid
 .nacos/
 data/
+uploads/
 
 # Tooling cache
 .eslintcache

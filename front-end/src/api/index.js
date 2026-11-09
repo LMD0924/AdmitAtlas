@@ -54,6 +54,25 @@ export const getSchools = (params) => request.get(`${V1}/schools`, { params })
 export const getSchool = (code, params) => request.get(`${V1}/schools/${code}`, { params })
 export const getMajors = (params) => request.get(`${V1}/majors`, { params })
 
+// ---------------------------------------------------------------- 院校资料（Markdown + 图片 / 头像上传）
+export const getSchoolProfile = (code) => request.get(`${V1}/schools/${code}/profile`)
+export const saveSchoolProfile = (code, markdown) =>
+  request.post(`${V1}/admin/schools/${code}/profile`, { markdown })
+export const uploadSchoolImage = (file) => {
+  const form = new FormData()
+  form.append('file', file)
+  return request.post(`${V1}/admin/upload/image`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+export const uploadAvatar = (file) => {
+  const form = new FormData()
+  form.append('file', file)
+  return request.post(`${V1}/users/avatar`, form, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
 // ---------------------------------------------------------------- 规则 / 校验
 export const getPolicy = (params) => request.get(`${V1}/rules/policy`, { params })
 export const getPolicyBook = (province, params) =>

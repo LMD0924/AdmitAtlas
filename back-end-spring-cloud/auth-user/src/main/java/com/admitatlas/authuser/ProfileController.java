@@ -8,7 +8,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -42,5 +44,12 @@ public class ProfileController {
     public Result<Map<String, Object>> changePassword(
             @RequestBody(required = false) ProfileDTO.PasswordRequest req) {
         return Result.ok(profileService.changePassword(req));
+    }
+
+    /** 头像上传（AUTHENTICATED）：落盘 ./uploads/avatars/，返回相对 URL 并写入用户档案。 */
+    @PostMapping("/avatar")
+    public Result<Map<String, Object>> uploadAvatar(
+            @RequestParam("file") MultipartFile file) {
+        return Result.ok(profileService.uploadAvatar(file));
     }
 }

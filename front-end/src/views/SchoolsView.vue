@@ -4,7 +4,8 @@ import * as echarts from 'echarts/core'
 import { LineChart } from 'echarts/charts'
 import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
-import { getDictionaries, getSchool, getSchools } from '@/api'
+import { getDictionaries, getSchool, getSchools, getSchoolProfile } from '@/api'
+import MarkdownIt from 'markdown-it'
 import { useTheme } from '@/composables/useTheme'
 
 echarts.use([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer])
@@ -24,6 +25,10 @@ const searched = ref(false)
 const error = ref('')
 const chartEl = ref(null)
 let chart = null
+
+const md = new MarkdownIt({ html: false, linkify: true, breaks: true })
+const profileMarkdown = ref('')
+const renderedProfile = computed(() => md.render(profileMarkdown.value || ''))
 
 const filters = [
   { label: '全部', value: '' }, { label: '985', value: '985' },
@@ -75,8 +80,14 @@ function clear() {
 async function openDetail(code) {
   detailLoading.value = true
   detail.value = null
+  profileMarkdown.value = ''
   try {
-    detail.value = await getSchool(code, { provinceCode: '42', category: '物理类' })
+    const [d, p] = await Promise.all([
+      getSchool(code, { provinceCode: '42', category: '物理类' }),
+      getSchoolProfile(code)
+    ])
+    detail.value = d
+    profileMarkdown.value = p?.profileMarkdown || ''
   } catch (e) {
     error.value = e.message || '详情加载失败'
   } finally {
@@ -243,6 +254,15 @@ onBeforeUnmount(() => {
           </table>
         </div>
       </div>
+    </div>
+
+    <div v-if="detail" class="glass p-5">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="text-[13px] font-semibold">院校资料</p>
+        <span class="pill pill-neutral">Markdown</span>
+      </div>
+      <div v-if="!renderedProfile" class="mt-3 text-[12px] faint">该校暂未发布院校资料。</div>
+      <div v-else class="markdown-body mt-3 text-[13px] leading-7" v-html="renderedProfile"></div>
     </div>
 
     <div class="grid gap-4 lg:grid-cols-12">

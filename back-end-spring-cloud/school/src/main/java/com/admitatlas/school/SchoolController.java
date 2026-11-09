@@ -74,6 +74,17 @@ public class SchoolController {
     }
 
     /** 专业目录（门类 → 专业类 → 专业）。 */
+    /** 院校 Markdown 资料，公开可读（游客可看）；无资料返回 null。 */
+    @GetMapping("/schools/{code}/profile")
+    public Result<Map<String, Object>> schoolProfile(@PathVariable String code) {
+        String markdown = repo.schoolProfile(code).orElse(null);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("schoolCode", code);
+        data.put("profileMarkdown", markdown);
+        data.put("dataVersion", repo.latestDataVersion());
+        return Result.ok(data);
+    }
+
     @GetMapping("/majors")
     public Result<Map<String, Object>> majors(
             @RequestParam(required = false) String keyword,

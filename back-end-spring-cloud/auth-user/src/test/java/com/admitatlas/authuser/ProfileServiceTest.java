@@ -35,7 +35,7 @@ class ProfileServiceTest {
 
     private static Models.UserAccount account(String displayName, String province, String hash) {
         return new Models.UserAccount(USER_ID, "student", hash, displayName, province,
-                "STUDENT", "ACTIVE", 2, "2026-11-08 10:00:00", "2026-11-01 09:00:00");
+                "STUDENT", "ACTIVE", 2, "2026-11-08 10:00:00", "2026-11-01 09:00:00", null);
     }
 
     @BeforeEach
@@ -50,7 +50,7 @@ class ProfileServiceTest {
         when(repo.province("11")).thenReturn(Optional.of(
                 new Models.Province("11", "北京", "GROUP_3_3", "2026-v1")));
         when(repo.latestDataVersion()).thenReturn("demo-2026-hb-v1");
-        service = new ProfileService(repo);
+        service = new ProfileService(repo, mock(FileStorageService.class));
     }
 
     @AfterEach

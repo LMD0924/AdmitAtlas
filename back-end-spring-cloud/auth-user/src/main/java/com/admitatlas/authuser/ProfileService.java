@@ -10,6 +10,7 @@ import com.admitatlas.common.auth.PasswordHasher;
 import com.admitatlas.common.model.Models;
 import com.admitatlas.common.repository.AdmitAtlasRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -31,9 +32,11 @@ public class ProfileService {
     private static final int MAX_PASSWORD = 64;
 
     private final AdmitAtlasRepository repo;
+    private final FileStorageService fileStorage;
 
-    public ProfileService(AdmitAtlasRepository repo) {
+    public ProfileService(AdmitAtlasRepository repo, FileStorageService fileStorage) {
         this.repo = repo;
+        this.fileStorage = fileStorage;
     }
 
     /** 身份信息 + 我的数据概览 + 最近成绩 / 方案 / 匹配任务。 */
@@ -55,6 +58,7 @@ public class ProfileService {
         profile.put("createdAt", account.createdAt());
         profile.put("lastLoginAt", account.lastLoginAt());
         profile.put("tokenVersion", account.tokenVersion());
+        profile.put("avatarUrl", account.avatarUrl());
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("profile", profile);
@@ -63,6 +67,19 @@ public class ProfileService {
         data.put("plans", repo.plans(user.id()).stream().limit(5).toList());
         data.put("tasks", repo.tasksByUser(user.id(), 5));
         data.put("dataVersion", repo.latestDataVersion());
+        return data;
+    }
+
+    /** 头像上传（F-C-51）：落盘 ./uploads/avatars/，更新档案 avatar_url 并写审计。 */
+    public Map<String, Object> uploadAvatar(MultipartFile file) {
+        AuthUser user = AuthContext.require();
+        String url = fileStorage.store(file, "avatars");
+        repo.updateAvatar(user.id(), url);
+        repo.writeAudit(user.id(), user.username(), "AVATAR_UPLOAD", "USER",
+                String.valueOf(user.id()), "更新头像 " + url);
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("url", url);
+        data.put("avatarUrl", url);
         return data;
     }
 

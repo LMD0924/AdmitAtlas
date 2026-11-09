@@ -30,7 +30,7 @@ class AuthServiceTest {
 
     private static Models.UserAccount account(long id, String username, String role) {
         return new Models.UserAccount(id, username, PasswordHasher.hash("Demo@123456"),
-                "演示学生", "42", role, "ACTIVE", 2, null, null);
+                "演示学生", "42", role, "ACTIVE", 2, null, null, null);
     }
 
     @BeforeEach
@@ -80,7 +80,7 @@ class AuthServiceTest {
         Models.UserAccount a = account(7L, "student", "STUDENT");
         Models.UserAccount disabled = new Models.UserAccount(a.id(), a.username(),
                 a.passwordHash(), a.displayName(), a.provinceCode(), a.role(),
-                "DISABLED", a.tokenVersion(), null, null);
+                "DISABLED", a.tokenVersion(), null, null, null);
         when(repo.userByUsername("student")).thenReturn(Optional.of(disabled));
         BizException ex = assertThrows(BizException.class, () -> service.login(
                 new AuthDTO.LoginRequest("student", "Demo@123456")));

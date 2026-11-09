@@ -24,4 +24,7 @@ public final class AdminDTO {
                                       String city, String tierTags, String schoolType,
                                       String schoolLevel, String intro) {
     }
+
+    public record SchoolProfileRequest(String markdown) {
+    }
 }

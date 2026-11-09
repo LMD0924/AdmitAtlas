@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -37,6 +38,7 @@ public class AdminController {
     private static final Pattern USERNAME = Pattern.compile("^[A-Za-z0-9_.-]{3,32}$");
 
     private final AdmitAtlasRepository repo;
+    private final FileStorageService fileStorage;
 
     @Value("${admitatlas.demo-data:true}")
     private boolean demoData;
@@ -44,8 +46,9 @@ public class AdminController {
     @Value("${admitatlas.stage:P1-pilot}")
     private String stage;
 
-    public AdminController(AdmitAtlasRepository repo) {
+    public AdminController(AdmitAtlasRepository repo, FileStorageService fileStorage) {
         this.repo = repo;
+        this.fileStorage = fileStorage;
     }
 
     /** 后台首页：账号 / 数据 / 业务量计数 + 最近审计。 */
@@ -222,6 +225,33 @@ public class AdminController {
                 before == null ? "新增院校 " + req.schoolName()
                         : before.schoolName() + " -> " + req.schoolName());
         return Result.ok(Map.of("school", repo.school(code).orElseThrow()));
+    }
+
+    @PostMapping("/schools/{code}/profile")
+    public Result<Map<String, Object>> updateSchoolProfile(
+            @PathVariable String code,
+            @RequestBody(required = false) AdminDTO.SchoolProfileRequest req) {
+        if (req == null || req.markdown() == null) {
+            throw new BizException(ResultCode.BAD_REQUEST, "资料内容不能为空");
+        }
+        if (repo.school(code).isEmpty()) {
+            throw new BizException(ResultCode.NOT_FOUND, "未找到院校档案: " + code);
+        }
+        String md = req.markdown();
+        if (md.length() > 200_000) {
+            throw new BizException(ResultCode.BAD_REQUEST, "资料内容过长（上限 200000 字符）");
+        }
+        repo.upsertSchoolProfile(code, md, AuthContext.require().username());
+        audit("UPDATE_SCHOOL_PROFILE", "SCHOOL", code, "更新院校 Markdown 资料");
+        return Result.ok(Map.of("schoolCode", code, "updated", true));
+    }
+
+    @PostMapping("/upload/image")
+    public Result<Map<String, Object>> uploadImage(
+            @RequestParam("file") MultipartFile file) {
+        String url = fileStorage.store(file, "school");
+        audit("UPLOAD_IMAGE", "SCHOOL_IMAGE", url, "上传院校配图");
+        return Result.ok(Map.of("url", url, "category", "school"));
     }
 
     // ------------------------------------------------------------ 业务核查（只读）

@@ -87,6 +87,24 @@ public class AdmitAtlasRepository {
                 this::schoolRow, code));
     }
 
+    /** F-C-50：院校 Markdown 资料，公开查询；无资料返回空 Optional。 */
+    public Optional<String> schoolProfile(String code) {
+        return first(jdbc.query("SELECT profile_markdown FROM school_profile WHERE school_code = ?",
+                (rs, i) -> rs.getString("profile_markdown"), code));
+    }
+
+    /** F-C-50：院校 Markdown 资料，管理员写入（不存在则插入）。 */
+    public void upsertSchoolProfile(String code, String markdown, String operator) {
+        int updated = jdbc.update("UPDATE school_profile SET profile_markdown = ?, "
+                        + "updated_at = CURRENT_TIMESTAMP, updated_by = ? WHERE school_code = ?",
+                markdown, operator, code);
+        if (updated == 0) {
+            jdbc.update("INSERT INTO school_profile (school_code, profile_markdown, updated_at, updated_by) "
+                            + "VALUES (?, ?, CURRENT_TIMESTAMP, ?)",
+                    code, markdown, operator);
+        }
+    }
+
     public List<Models.Major> majors(String keyword, String category) {
         StringBuilder sql = new StringBuilder("SELECT major_code, major_name, category, "
                 + "major_class, degree_years FROM dim_major WHERE 1=1");
@@ -274,21 +292,26 @@ public class AdmitAtlasRepository {
 
     public Optional<Models.UserAccount> userByUsername(String username) {
         return first(jdbc.query("SELECT id, username, password_hash, display_name, province_code, "
-                        + "user_role, account_status, token_version, last_login_at, created_at "
+                        + "user_role, account_status, token_version, last_login_at, created_at, avatar_url "
                         + "FROM student_profile WHERE username = ?",
                 this::userAccountRow, username));
     }
 
+    /** F-C-51：更新当前用户头像 URL（相对路径 /files/avatars/...）。 */
+    public void updateAvatar(long id, String url) {
+        jdbc.update("UPDATE student_profile SET avatar_url = ? WHERE id = ?", url, id);
+    }
+
     public Optional<Models.UserAccount> userById(long id) {
         return first(jdbc.query("SELECT id, username, password_hash, display_name, province_code, "
-                        + "user_role, account_status, token_version, last_login_at, created_at "
+                        + "user_role, account_status, token_version, last_login_at, created_at, avatar_url "
                         + "FROM student_profile WHERE id = ?",
                 this::userAccountRow, id));
     }
 
     public List<Models.UserAccount> users(String role, String keyword) {
         StringBuilder sql = new StringBuilder("SELECT id, username, password_hash, display_name, "
-                + "province_code, user_role, account_status, token_version, last_login_at, created_at "
+                + "province_code, user_role, account_status, token_version, last_login_at, created_at, avatar_url "
                 + "FROM student_profile WHERE 1=1");
         List<Object> args = new ArrayList<>();
         if (has(role)) {
@@ -626,7 +649,8 @@ public class AdmitAtlasRepository {
                 rs.getString("password_hash"), rs.getString("display_name"),
                 rs.getString("province_code"), rs.getString("user_role"),
                 rs.getString("account_status"), rs.getInt("token_version"),
-                rs.getString("last_login_at"), rs.getString("created_at"));
+                rs.getString("last_login_at"), rs.getString("created_at"),
+                rs.getString("avatar_url"));
     }
 
     private Models.AuditLog auditRow(ResultSet rs, int i) throws SQLException {

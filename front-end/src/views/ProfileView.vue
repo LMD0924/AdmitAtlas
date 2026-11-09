@@ -2,7 +2,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  changePassword, getDictionaries, getProfile, updateProfile
+  changePassword, getDictionaries, getProfile, updateProfile, uploadAvatar
 } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 
@@ -23,6 +23,9 @@ const dataVersion = ref('')
 const error = ref('')
 const msg = ref('')
 const pwdError = ref('')
+
+const avatarInput = ref(null)
+const uploadingAvatar = ref(false)
 
 const form = reactive({ displayName: '', provinceCode: '' })
 const pwd = reactive({ oldPassword: '', newPassword: '', confirm: '' })
@@ -118,6 +121,30 @@ async function doChangePassword() {
   }
 }
 
+function triggerAvatar() {
+  avatarInput.value?.click()
+}
+
+async function onAvatarPicked(e) {
+  const file = e.target.files?.[0]
+  if (!file) return
+  uploadingAvatar.value = true
+  error.value = ''
+  try {
+    const res = await uploadAvatar(file)
+    const url = res?.url || res?.avatarUrl || ''
+    if (url && profile.value) {
+      profile.value.avatarUrl = url
+      auth.setAvatar?.(url)
+    }
+  } catch (err) {
+    error.value = err.message || '头像上传失败'
+  } finally {
+    uploadingAvatar.value = false
+    e.target.value = ''
+  }
+}
+
 onMounted(load)
 </script>
 
@@ -142,7 +169,15 @@ onMounted(load)
       <!-- 身份卡 -->
       <div class="glass-strong rounded-2xl p-6 md:p-7" v-reveal="1">
         <div class="flex flex-wrap items-center gap-5">
-          <span class="profile-avatar">{{ initial }}</span>
+          <div class="relative inline-flex">
+            <img v-if="profile.avatarUrl" :src="profile.avatarUrl" class="profile-avatar-img" alt="头像" />
+            <span v-else class="profile-avatar">{{ initial }}</span>
+            <button class="avatar-upload-btn" type="button" @click="triggerAvatar()"
+              :disabled="uploadingAvatar" :title="uploadingAvatar ? '上传中…' : '上传头像'">
+              {{ uploadingAvatar ? '…' : '🖼' }}
+            </button>
+            <input ref="avatarInput" type="file" accept="image/*" class="hidden" @change="onAvatarPicked" />
+          </div>
           <div class="min-w-[180px] flex-1">
             <div class="flex flex-wrap items-center gap-2">
               <h2 class="text-[20px] font-semibold tracking-tight">{{ profile.displayName }}</h2>
