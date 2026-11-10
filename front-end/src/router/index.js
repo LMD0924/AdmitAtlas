@@ -53,6 +53,44 @@ const routes = [
     meta: { title: '院校详情' }
   },
   {
+    // 静态段优先于 /schools/:code，vue-router 4 的路径评分保证不会误判为院校代码。
+    path: '/schools/compare',
+    name: 'school-compare',
+    component: () => import('@/views/SchoolCompareView.vue'),
+    meta: { title: '院校对比' }
+  },
+  {
+    path: '/majors',
+    name: 'majors',
+    component: () => import('@/views/MajorsView.vue'),
+    meta: { title: '专业库' }
+  },
+  {
+    path: '/insights',
+    name: 'insights',
+    component: () => import('@/views/InsightsView.vue'),
+    meta: { title: '数据洞察' }
+  },
+  {
+    path: '/advisor',
+    name: 'advisor',
+    component: () => import('@/views/AdvisorView.vue'),
+    meta: { title: '志愿顾问' }
+  },
+  {
+    path: '/plan/compare',
+    name: 'plan-compare',
+    component: () => import('@/views/PlanCompareView.vue'),
+    meta: { title: '方案对比', requiresAuth: true }
+  },
+  {
+    // 只读分享：游客可直接打开，令牌有效期与撤销由服务端控制。
+    path: '/share/:token',
+    name: 'shared-plan',
+    component: () => import('@/views/ShareView.vue'),
+    meta: { title: '志愿方案分享' }
+  },
+  {
     path: '/admin',
     component: () => import('@/views/admin/AdminLayout.vue'),
     meta: { title: '管理后台', requiresAdmin: true },

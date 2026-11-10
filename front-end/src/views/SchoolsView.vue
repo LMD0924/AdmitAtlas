@@ -3,9 +3,14 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getDictionaries, getSchools } from '@/api'
 import { schoolTheme, tierPill, splitTiers, schoolInitial } from '@/utils/schoolTheme'
+import { useEngagementStore } from '@/stores/engagement'
+import { useAuthStore } from '@/stores/auth'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
+const engagement = useEngagementStore()
+const tip = ref('')
 
 const keyword = ref('')
 const provinceCode = ref('')
@@ -87,12 +92,41 @@ function clear() {
   search(1)
 }
 
+function detailTo(c) {
+  return { name: 'school-detail', params: { code: c.schoolCode }, query: route.query }
+}
+
+let tipTimer = null
+function flash(message) {
+  tip.value = message
+  clearTimeout(tipTimer)
+  tipTimer = setTimeout(() => { tip.value = '' }, 2600)
+}
+
+/** 收藏需登录：游客直接带 redirect 回登录页，登录后原路返回。 */
+async function toggleFavorite(c) {
+  if (!auth.isLoggedIn) {
+    router.push({ name: 'login', query: { redirect: route.fullPath } })
+    return
+  }
+  const res = await engagement.toggleFavorite(c.schoolCode)
+  if (!res.ok) flash(res.message || '收藏失败，请稍后重试')
+  else flash(res.reason === 'added' ? `已收藏 ${c.schoolName}` : `已取消收藏 ${c.schoolName}`)
+}
+
+function toggleCompare(c) {
+  const res = engagement.toggleCompare(c.schoolCode, c.schoolName)
+  if (!res.ok) flash(`最多同时对比 4 所院校，请先移除一所`)
+  else flash(res.reason === 'added' ? `已加入对比：${c.schoolName}` : `已移出对比：${c.schoolName}`)
+}
+
 onMounted(async () => {
   readQuery()
   try {
     const d = await getDictionaries()
     provinces.value = d?.provinces ?? []
   } catch { /* 字典不可用时下拉为空，检索仍可用 */ }
+  engagement.loadFavorites()
   await search(page.value)
 })
 </script>
@@ -109,6 +143,7 @@ onMounted(async () => {
       </div>
       <div v-reveal="2" class="btn-group">
         <RouterLink to="/" class="btn btn-slate">← 返回概览</RouterLink>
+        <RouterLink to="/majors" class="btn btn-violet"><span class="btn-glyph">◫</span> 专业库</RouterLink>
         <RouterLink to="/match" class="btn btn-teal"><span class="btn-glyph">◎</span> 智能匹配</RouterLink>
       </div>
     </div>
@@ -134,31 +169,50 @@ onMounted(async () => {
       <div v-if="error" class="mt-4 rounded-lg px-3 py-2 text-[12px]" style="background: var(--rose-bg); color: var(--rose)">{{ error }}</div>
 
       <div v-if="cards.length" class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        <RouterLink v-for="c in cards" :key="c.schoolCode" class="school-card"
-          :data-school-theme="c.theme"
-          :to="{ name: 'school-detail', params: { code: c.schoolCode }, query: route.query }">
-          <span class="school-card-head">
-            <span class="school-card-badge" aria-hidden="true">{{ c.initial }}</span>
-            <span class="school-card-title">
-              <span class="school-card-code">{{ c.schoolCode }}</span>
-              <span class="school-card-name">{{ c.schoolName }}</span>
+        <div v-for="c in cards" :key="c.schoolCode" class="school-card"
+          :data-school-theme="c.theme">
+          <RouterLink class="school-card-main" :to="detailTo(c)">
+            <span class="school-card-head">
+              <span class="school-card-badge" aria-hidden="true">{{ c.initial }}</span>
+              <span class="school-card-title">
+                <span class="school-card-code">{{ c.schoolCode }}</span>
+                <span class="school-card-name">{{ c.schoolName }}</span>
+              </span>
+              <span class="school-card-level">{{ c.schoolLevel || '本科' }}</span>
             </span>
-            <span class="school-card-level">{{ c.schoolLevel || '本科' }}</span>
-          </span>
-          <span class="school-card-meta">
-            <span>所在地 · {{ c.city || '—' }}</span>
-            <span>类型 · {{ c.schoolType || '—' }}</span>
-            <span v-if="c.supervisor">主管 · {{ c.supervisor }}</span>
-          </span>
-          <span class="school-card-tags">
-            <span v-for="t in c.tiers" :key="t" class="pill" :class="tierPill(t)">{{ t }}</span>
-            <span v-if="!c.tiers.length" class="faint text-[10px]">暂无层次标签</span>
-          </span>
-          <span class="school-card-foot">
-            <span>{{ c.intro ? c.intro.slice(0, 28) + (c.intro.length > 28 ? '…' : '') : '点击查看完整档案' }}</span>
-            <span class="school-card-cta">查看详情 <span class="link-arrow">→</span></span>
-          </span>
-        </RouterLink>
+            <span class="school-card-meta">
+              <span>所在地 · {{ c.city || '—' }}</span>
+              <span>类型 · {{ c.schoolType || '—' }}</span>
+              <span v-if="c.supervisor">主管 · {{ c.supervisor }}</span>
+            </span>
+            <span class="school-card-tags">
+              <span v-for="t in c.tiers" :key="t" class="pill" :class="tierPill(t)">{{ t }}</span>
+              <span v-if="!c.tiers.length" class="faint text-[10px]">暂无层次标签</span>
+            </span>
+            <span class="school-card-foot">
+              <span>{{ c.intro ? c.intro.slice(0, 28) + (c.intro.length > 28 ? '…' : '') : '点击查看完整档案' }}</span>
+              <span class="school-card-cta">查看详情 <span class="link-arrow">→</span></span>
+            </span>
+          </RouterLink>
+          <div class="school-card-tools">
+            <button type="button" class="school-tool"
+              :class="{ 'is-on': engagement.isFavorite(c.schoolCode) }"
+              :aria-pressed="engagement.isFavorite(c.schoolCode)"
+              :title="engagement.isFavorite(c.schoolCode) ? '取消收藏' : '收藏该院校'"
+              @click="toggleFavorite(c)">
+              <span aria-hidden="true">{{ engagement.isFavorite(c.schoolCode) ? '♥' : '♡' }}</span>
+              {{ engagement.isFavorite(c.schoolCode) ? '已收藏' : '收藏' }}
+            </button>
+            <button type="button" class="school-tool"
+              :class="{ 'is-on': engagement.isCompared(c.schoolCode) }"
+              :aria-pressed="engagement.isCompared(c.schoolCode)"
+              :title="engagement.isCompared(c.schoolCode) ? '移出对比' : '加入对比（最多 4 所）'"
+              @click="toggleCompare(c)">
+              <span aria-hidden="true">{{ engagement.isCompared(c.schoolCode) ? '✓' : '⇄' }}</span>
+              {{ engagement.isCompared(c.schoolCode) ? '已加入' : '对比' }}
+            </button>
+          </div>
+        </div>
       </div>
       <div v-else class="mt-5 rounded-xl border border-hairline py-10 text-center text-[12px] faint">
         {{ searched ? '没有匹配的院校，试试放宽条件' : '正在加载院校档案…' }}
@@ -184,5 +238,9 @@ onMounted(async () => {
     <p v-reveal="0" class="text-center text-[11px] faint">
       当前为演示数据集（合成值），非真实录取分数；最终以各省教育考试院公布为准
     </p>
+
+    <Transition name="school-tip">
+      <div v-if="tip" class="school-tip" role="status">{{ tip }}</div>
+    </Transition>
   </div>
 </template>

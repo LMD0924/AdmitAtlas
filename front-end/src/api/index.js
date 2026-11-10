@@ -82,6 +82,23 @@ export const validateCombo = (payload) =>
 export const validatePlanItems = (payload) =>
   request.post(`${V1}/rules/plan-items/validate`, payload)
 
+// ---------------------------------------------------------------- 收藏 / 对比 / 专业详情
+export const getFavorites = () => request.get(`${V1}/favorites`)
+export const addFavorite = (code) => request.post(`${V1}/favorites/${code}`)
+export const removeFavorite = (code) => request.delete(`${V1}/favorites/${code}`)
+export const compareSchools = (codes, params = {}) =>
+  request.get(`${V1}/compare/schools`, { params: { codes: [...codes].join(','), ...params } })
+export const getMajor = (code) => request.get(`${V1}/majors/${code}`)
+
+// ---------------------------------------------------------------- 数据大屏
+export const getInsights = (params = {}) => request.get(`${V1}/insights`, { params })
+
+// ---------------------------------------------------------------- 方案只读分享
+export const createPlanShare = (id, payload = {}) =>
+  request.post(`${V1}/plans/${id}/share`, payload)
+export const revokePlanShare = (id) => request.delete(`${V1}/plans/${id}/share`)
+export const getSharedPlan = (token) => request.get(`${V1}/share/${token}`)
+
 // ---------------------------------------------------------------- 匹配
 export const analyzeMatch = (payload) => request.post(`${V1}/match/analyze`, payload)
 export const getMatchTask = (taskId) => request.get(`${V1}/match/tasks/${taskId}`)

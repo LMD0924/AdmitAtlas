@@ -2,8 +2,11 @@
 import { onMounted, ref } from 'vue'
 import AppHeader from '@/components/AppHeader.vue'
 import RouteLoader from '@/components/RouteLoader.vue'
+import CompareBar from '@/components/CompareBar.vue'
 import { getDataVersion } from '@/api'
+import { useEngagementStore } from '@/stores/engagement'
 
+const engagement = useEngagementStore()
 const version = ref(null)
 // 每次页面进入递增 key 重建扫描光带，保证 CSS 动画能重复播放。
 const scanKey = ref(0)
@@ -24,7 +27,8 @@ onMounted(async () => {
   <div class="relative z-10 flex min-h-[100dvh] flex-col">
     <AppHeader />
 
-    <main class="mx-auto w-full max-w-[1200px] flex-1 px-5 pb-16 pt-[110px] md:px-8 md:pt-[124px]">
+    <main class="mx-auto w-full max-w-[1200px] flex-1 px-5 pb-16 pt-[110px] md:px-8 md:pt-[124px]"
+      :class="{ 'has-compare-bar': engagement.compareCount }">
       <RouterView v-slot="{ Component, route }">
         <Transition name="page" mode="out-in" @before-enter="startScan">
           <component :is="Component" :key="route.path" />
@@ -46,5 +50,6 @@ onMounted(async () => {
   </div>
 
   <div v-if="scanKey" :key="scanKey" class="route-scanline" aria-hidden="true"></div>
+  <CompareBar />
   <RouteLoader />
 </template>

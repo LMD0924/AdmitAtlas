@@ -523,6 +523,128 @@ public class AdmitAtlasRepository {
         return out;
     }
 
+    // -------------------------------------------------------------- engagement (V6)
+
+    /** F-C-19：收藏列表按账号隔离，LEFT JOIN 保证院校档案被删除时记录仍可见。 */
+    public List<Models.Favorite> favorites(long userId) {
+        return jdbc.query("SELECT f.school_code, s.school_name, s.city, s.tier_tags, "
+                        + "s.school_type, f.created_at FROM user_favorite f "
+                        + "LEFT JOIN dim_school s ON s.school_code = f.school_code "
+                        + "WHERE f.user_id = ? ORDER BY f.created_at DESC, f.school_code",
+                (rs, i) -> new Models.Favorite(rs.getString("school_code"),
+                        rs.getString("school_name"), rs.getString("city"),
+                        rs.getString("tier_tags"), rs.getString("school_type"),
+                        rs.getString("created_at")), userId);
+    }
+
+    public List<String> favoriteCodes(long userId) {
+        return jdbc.queryForList("SELECT school_code FROM user_favorite WHERE user_id = ?",
+                String.class, userId);
+    }
+
+    /** 幂等新增：已收藏直接返回 false，避免唯一键约束异常冒泡成 500。 */
+    public boolean addFavorite(long userId, String schoolCode) {
+        Integer n = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM user_favorite WHERE user_id = ? AND school_code = ?",
+                Integer.class, userId, schoolCode);
+        if (n != null && n > 0) {
+            return false;
+        }
+        jdbc.update("INSERT INTO user_favorite (id, user_id, school_code, created_at) "
+                        + "VALUES (?, ?, ?, CURRENT_TIMESTAMP)",
+                com.admitatlas.common.support.Ids.next(), userId, schoolCode);
+        return true;
+    }
+
+    public void removeFavorite(long userId, String schoolCode) {
+        jdbc.update("DELETE FROM user_favorite WHERE user_id = ? AND school_code = ?",
+                userId, schoolCode);
+    }
+
+    public int countFavorites(long userId) {
+        Integer n = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM user_favorite WHERE user_id = ?", Integer.class, userId);
+        return n == null ? 0 : n;
+    }
+
+    /** F-C-44：expiresAt 为 null 表示长期有效；写入后回读同一行作为返回值。 */
+    public Models.PlanShare createShare(String token, long planId, long userId,
+                                        boolean maskOwner, java.sql.Timestamp expiresAt) {
+        jdbc.update("INSERT INTO plan_share (share_token, plan_id, user_id, mask_owner, "
+                        + "expires_at, created_at, revoked) "
+                        + "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)",
+                token, planId, userId, maskOwner ? 1 : 0, expiresAt);
+        return shareByToken(token).orElseThrow(() -> new IllegalStateException("分享写入失败"));
+    }
+
+    public Optional<Models.PlanShare> shareByToken(String token) {
+        return first(jdbc.query("SELECT share_token, plan_id, user_id, mask_owner, expires_at, "
+                + "created_at, revoked FROM plan_share WHERE share_token = ?",
+                this::planShareRow, token));
+    }
+
+    /** 只读访问：令牌必须未撤销且未过期，过期判定交给数据库时钟。 */
+    public Optional<Models.PlanShare> activeShare(String token) {
+        return first(jdbc.query("SELECT share_token, plan_id, user_id, mask_owner, expires_at, "
+                        + "created_at, revoked FROM plan_share WHERE share_token = ? "
+                        + "AND revoked = 0 AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)",
+                this::planShareRow, token));
+    }
+
+    public void revokeShares(long planId, long userId) {
+        jdbc.update("UPDATE plan_share SET revoked = 1 WHERE plan_id = ? AND user_id = ?",
+                planId, userId);
+    }
+
+    // -------------------------------------------------------------- major detail & insights
+
+    public Optional<Models.Major> major(String code) {
+        return first(jdbc.query("SELECT major_code, major_name, category, major_class, "
+                + "degree_years FROM dim_major WHERE major_code = ?", this::majorRow, code));
+    }
+
+    /** 开设院校来自招生计划，附带选科要求；DISTINCT 去掉同校多组别重复行。 */
+    public List<Map<String, Object>> majorSchools(String majorCode) {
+        return jdbc.queryForList("SELECT DISTINCT p.school_code, s.school_name, p.plan_count, "
+                + "r.req_name, r.req_expr FROM fact_admission_plan p "
+                + "LEFT JOIN dim_school s ON s.school_code = p.school_code "
+                + "LEFT JOIN dim_subject_requirement r ON r.req_code = p.req_code "
+                + "WHERE p.major_code = ? ORDER BY p.school_code", majorCode);
+    }
+
+    /** 一分一段按 10 分分桶；表达式不加 CAST，兼容 H2 与 MySQL 两种数值类型。 */
+    public List<Map<String, Object>> scoreBuckets(String provinceCode, int year, String category) {
+        return jdbc.queryForList("SELECT FLOOR(score / 10.0) * 10 AS bucket, "
+                + "SUM(segment_count) AS people FROM fact_score_segment "
+                + "WHERE province_code = ? AND exam_year = ? AND category = ? "
+                + "GROUP BY FLOOR(score / 10.0) * 10 ORDER BY bucket",
+                provinceCode, year, category);
+    }
+
+    public List<Map<String, Object>> admissionTrend(String provinceCode, String category) {
+        return jdbc.queryForList("SELECT exam_year, COUNT(*) AS row_count, "
+                + "AVG(min_score) AS avg_score, AVG(min_rank) AS avg_rank "
+                + "FROM fact_admission_score WHERE province_code = ? AND category = ? "
+                + "GROUP BY exam_year ORDER BY exam_year", provinceCode, category);
+    }
+
+    /** 投档事实表的最新年份；一分一段可能已发布到下一年，位次榜不能跟着空转。 */
+    public int latestAdmissionYear(String provinceCode, String category) {
+        Integer year = jdbc.queryForObject("SELECT MAX(exam_year) FROM fact_admission_score "
+                + "WHERE province_code = ? AND category = ?", Integer.class, provinceCode, category);
+        return year == null ? 2026 : year;
+    }
+
+    public List<Map<String, Object>> topSchools(String provinceCode, int year,
+                                                String category, int limit) {
+        return jdbc.queryForList("SELECT f.school_code, s.school_name, "
+                + "MIN(f.min_rank) AS best_rank, MAX(f.min_score) AS best_score "
+                + "FROM fact_admission_score f JOIN dim_school s ON s.school_code = f.school_code "
+                + "WHERE f.province_code = ? AND f.exam_year = ? AND f.category = ? "
+                + "GROUP BY f.school_code, s.school_name ORDER BY best_rank ASC LIMIT ?",
+                provinceCode, year, category, limit);
+    }
+
     // -------------------------------------------------------------- meta
 
     public String latestDataVersion() {
@@ -698,5 +820,13 @@ public class AdmitAtlasRepository {
         return new Models.DataVersionEntry(rs.getString("data_version"), rs.getString("status"),
                 rs.getString("coverage_note"), rs.getInt("demo_data") == 1,
                 rs.getString("activated_by"), rs.getString("activated_at"));
+    }
+
+    private Models.PlanShare planShareRow(ResultSet rs, int i) throws SQLException {
+        java.sql.Timestamp exp = rs.getTimestamp("expires_at");
+        return new Models.PlanShare(rs.getString("share_token"), rs.getLong("plan_id"),
+                rs.getLong("user_id"), rs.getInt("mask_owner") == 1,
+                exp == null ? null : exp.toLocalDateTime().toString(),
+                rs.getString("created_at"), rs.getInt("revoked") == 1);
     }
 }

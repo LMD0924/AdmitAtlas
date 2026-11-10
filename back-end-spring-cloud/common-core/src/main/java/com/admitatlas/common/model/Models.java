@@ -109,4 +109,14 @@ public final class Models {
     public record DataVersionEntry(String dataVersion, String status, String coverageNote,
                                    boolean demoData, String activatedBy, String activatedAt) {
     }
+
+    /** F-C-19：按账号隔离的院校收藏。 */
+    public record Favorite(String schoolCode, String schoolName, String city,
+                           String tierTags, String schoolType, String createdAt) {
+    }
+
+    /** F-C-44：方案只读分享令牌；expiresAt 为 null 表示长期有效。 */
+    public record PlanShare(String shareToken, long planId, long userId, boolean maskOwner,
+                            String expiresAt, String createdAt, boolean revoked) {
+    }
 }

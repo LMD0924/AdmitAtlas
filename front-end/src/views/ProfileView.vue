@@ -2,11 +2,15 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  changePassword, getDictionaries, getProfile, updateProfile, uploadAvatar
+  changePassword, getDictionaries, getFavorites, getProfile, updateProfile, uploadAvatar
 } from '@/api'
 import { useAuthStore } from '@/stores/auth'
+import { useEngagementStore } from '@/stores/engagement'
+import { tierPill, splitTiers } from '@/utils/schoolTheme'
 
 const auth = useAuthStore()
+const engagement = useEngagementStore()
+const favoriteItems = ref([])
 const route = useRoute()
 const router = useRouter()
 
@@ -145,7 +149,24 @@ async function onAvatarPicked(e) {
   }
 }
 
-onMounted(load)
+/** F-C-19：我的收藏。列表接口按账号隔离，取消收藏后同步对比篮以外的状态。 */
+async function loadFavorites() {
+  try {
+    const data = await getFavorites()
+    favoriteItems.value = data?.items ?? []
+    await engagement.loadFavorites(true)
+  } catch { favoriteItems.value = [] }
+}
+
+async function unfavorite(item) {
+  const res = await engagement.toggleFavorite(item.schoolCode)
+  if (res.ok) await loadFavorites()
+}
+
+onMounted(async () => {
+  await load()
+  await loadFavorites()
+})
 </script>
 
 <template>
@@ -373,6 +394,33 @@ onMounted(load)
             </table>
           </div>
         </div>
+      </div>
+
+      <div class="glass rounded-2xl p-6" v-reveal="8">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="section-title">我的收藏院校 <span class="pill pill-rose">{{ favoriteItems.length }}</span></h2>
+          <RouterLink to="/schools" class="btn btn-blue"><span class="btn-glyph">⌕</span> 去院校库</RouterLink>
+        </div>
+        <div v-if="favoriteItems.length" class="mt-4 grid gap-3 sm:grid-cols-2">
+          <div v-for="f in favoriteItems" :key="f.schoolCode"
+            class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-hairline px-3 py-2.5">
+            <div class="min-w-0">
+              <RouterLink :to="'/schools/' + f.schoolCode" class="text-[12px] font-semibold hover:underline">
+                {{ f.schoolName || f.schoolCode }}
+              </RouterLink>
+              <div class="mt-1 flex flex-wrap gap-1">
+                <span v-for="t in splitTiers(f.tierTags)" :key="t" class="pill" :class="tierPill(t)">{{ t }}</span>
+                <span class="text-[10px] faint">{{ f.city || '—' }} · {{ f.schoolType || '—' }}</span>
+              </div>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-slate" type="button"
+                @click="engagement.toggleCompare(f.schoolCode, f.schoolName)">加入对比</button>
+              <button class="btn btn-rose" type="button" @click="unfavorite(f)">取消收藏</button>
+            </div>
+          </div>
+        </div>
+        <p v-else class="mt-4 text-[12px] faint">还没有收藏院校。在院校库卡片上点「收藏」即可加入这里。</p>
       </div>
 
       <p class="faint mt-6 text-center text-[11px] leading-5">

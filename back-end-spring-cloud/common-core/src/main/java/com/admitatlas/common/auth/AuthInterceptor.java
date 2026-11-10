@@ -38,7 +38,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             "/api/v1/auth/logout",
             "/api/v1/users/profile",
             "/api/v1/users/password",
-            "/api/v1/users/avatar"
+            "/api/v1/users/avatar",
+            "/api/v1/favorites/**"
     };
 
     private enum Level { PUBLIC, AUTHENTICATED, ADMIN }

@@ -1,6 +1,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { downloadPlan, getPlan, getPlans, getPolicy, savePlan, validatePlan } from '@/api'
+import {
+  createPlanShare, downloadPlan, getPlan, getPlans, getPolicy,
+  revokePlanShare, savePlan, validatePlan
+} from '@/api'
 import { useAppStore } from '@/stores/app'
 import RiskTag from '@/components/RiskTag.vue'
 
@@ -14,6 +17,16 @@ const busy = ref(false)
 const message = ref('')
 const messageTone = ref('mint')
 const dragIndex = ref(null)
+
+// F-C-44：只读分享链接，默认隐藏账号、72 小时有效；只能分享已保存的方案。
+const shareOpen = ref(false)
+const shareBusy = ref(false)
+const shareHours = ref(72)
+const shareResult = ref(null)
+const shareError = ref('')
+
+const shareUrl = computed(() =>
+  shareResult.value ? window.location.origin + shareResult.value.sharePath : '')
 
 const distribution = computed(() => [
   { key: 'CHONG', label: '冲', cls: 'chong', ...store.tierDistribution.CHONG },
@@ -129,6 +142,54 @@ function clearAll() {
   savedPlanId.value = null
 }
 
+function openShare() {
+  shareError.value = ''
+  if (!savedPlanId.value) {
+    notify('请先保存方案，再生成只读分享链接', 'rose')
+    return
+  }
+  shareOpen.value = true
+}
+
+async function doShare() {
+  if (!savedPlanId.value) return
+  shareBusy.value = true
+  shareError.value = ''
+  try {
+    shareResult.value = await createPlanShare(savedPlanId.value, {
+      expiresInHours: Number(shareHours.value), masked: true
+    })
+    notify('只读分享链接已生成')
+  } catch (e) {
+    shareError.value = e.message || '生成失败，请稍后重试'
+  } finally {
+    shareBusy.value = false
+  }
+}
+
+async function doRevoke() {
+  if (!savedPlanId.value) return
+  shareBusy.value = true
+  try {
+    await revokePlanShare(savedPlanId.value)
+    shareResult.value = null
+    notify('已撤销该方案的全部分享链接')
+  } catch (e) {
+    shareError.value = e.message || '撤销失败'
+  } finally {
+    shareBusy.value = false
+  }
+}
+
+async function copyShare() {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value)
+    notify('链接已复制到剪贴板')
+  } catch {
+    notify('请手动复制下方链接', 'rose')
+  }
+}
+
 onMounted(async () => {
   await Promise.all([loadPolicy(), loadPlans()])
 })
@@ -147,6 +208,8 @@ onMounted(async () => {
       <div v-reveal="2" class="btn-group no-print">
         <RouterLink to="/score" class="btn btn-mint"><span class="btn-glyph">✎</span> 成绩录入</RouterLink>
         <RouterLink to="/match" class="btn btn-violet"><span class="btn-glyph">◎</span> 智能匹配</RouterLink>
+        <RouterLink to="/plan/compare" class="btn btn-slate"><span class="btn-glyph">⇄</span> 方案对比</RouterLink>
+        <button type="button" class="btn btn-blue" @click="openShare"><span class="btn-glyph">↗</span> 生成分享</button>
       </div>
     </div>
 
@@ -296,6 +359,48 @@ onMounted(async () => {
     <p class="text-center text-[11px] leading-5 faint">
       输出为「匹配度 / 风险等级」，不构成录取承诺；当前为演示数据（合成值），最终以各省教育考试院公布为准
     </p>
+
+    <Teleport to="body">
+      <div v-if="shareOpen" class="share-mask no-print" @click.self="shareOpen = false">
+        <div class="share-panel glass" role="dialog" aria-modal="true" aria-label="生成只读分享链接">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="eyebrow">Read-only share</p>
+              <h2 class="mt-2 text-[16px] font-semibold">分享这套志愿方案</h2>
+            </div>
+            <button class="btn btn-slate" type="button" aria-label="关闭" @click="shareOpen = false">✕</button>
+          </div>
+          <p class="mt-3 text-[12px] leading-6 muted">
+            生成一条游客可打开的只读链接，不暴露账号与方案内部标识；到期或撤销后立即失效。
+          </p>
+
+          <label class="mt-4 block text-[11px] muted" for="share-hours">有效期（小时，0 表示长期有效）</label>
+          <input id="share-hours" v-model.number="shareHours" class="field mt-1" type="number" min="0" max="720" />
+
+          <div v-if="shareError" class="mt-3 rounded-lg px-3 py-2 text-[12px]"
+            style="background: var(--rose-bg); color: var(--rose)">{{ shareError }}</div>
+
+          <div v-if="shareResult" class="mt-4 rounded-xl border border-hairline p-3">
+            <p class="text-[11px] faint">只读链接</p>
+            <p class="mt-1 break-all font-mono text-[11px]">{{ shareUrl }}</p>
+            <p class="mt-2 text-[11px] faint">
+              到期时间：{{ shareResult.expiresAt ? shareResult.expiresAt.replace('T', ' ').slice(0, 16) : '长期有效' }} · 已隐藏账号信息
+            </p>
+            <div class="mt-3 btn-group">
+              <button class="btn btn-blue" type="button" @click="copyShare">复制链接</button>
+              <RouterLink :to="shareResult.sharePath" class="btn btn-slate" target="_blank">预览</RouterLink>
+            </div>
+          </div>
+
+          <div class="mt-5 flex flex-wrap justify-end gap-2">
+            <button v-if="shareResult" class="btn btn-rose" type="button" :disabled="shareBusy" @click="doRevoke">撤销链接</button>
+            <button class="btn btn-teal" type="button" :disabled="shareBusy" @click="doShare">
+              {{ shareBusy ? '处理中…' : (shareResult ? '重新生成' : '生成链接') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -307,4 +412,10 @@ onMounted(async () => {
 .seg-wen { background: var(--wen-text); }
 .seg-bao { background: var(--bao-text); }
 @keyframes bar-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.share-mask {
+  position: fixed; inset: 0; z-index: 95; display: grid; place-items: center; padding: 20px;
+  background: color-mix(in srgb, var(--text) 32%, transparent);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.share-panel { width: min(480px, 100%); max-height: 88vh; overflow: auto; padding: 22px; border-radius: 18px; box-shadow: var(--shadow); }
 </style>

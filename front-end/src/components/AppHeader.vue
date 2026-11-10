@@ -23,15 +23,23 @@ const icons = {
   target: 'M12 3a9 9 0 1 0 9 9M12 7a5 5 0 1 0 5 5M12 11a1 1 0 1 0 1 1',
   list: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
   search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM16.5 16.5 21 21',
-  grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z'
+  grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z',
+  book: 'M4 5.5A2.5 2.5 0 0 1 6.5 3H20v17H6.5A2.5 2.5 0 0 1 4 17.5v-12ZM4 17.5A2.5 2.5 0 0 1 6.5 15H20',
+  chart: 'M4 20V10M10 20V4M16 20v-7M22 20H2',
+  spark: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z'
 }
 
+// 标签统一缩写，避免新增的院校库 / 专业库 / 洞察 / 顾问把导航挤窄；
+// .nav-links 本身支持横向滚动，小屏仍可访问全部入口。
 const baseLinks = [
   { to: '/', label: '概览', icon: icons.home },
-  { to: '/score', label: '成绩录入', icon: icons.edit },
-  { to: '/match', label: '智能匹配', icon: icons.target },
-  { to: '/plan', label: '志愿方案', icon: icons.list },
-  { to: '/schools', label: '资源中枢', icon: icons.search }
+  { to: '/score', label: '成绩', icon: icons.edit },
+  { to: '/match', label: '匹配', icon: icons.target },
+  { to: '/plan', label: '方案', icon: icons.list },
+  { to: '/schools', label: '院校库', icon: icons.search },
+  { to: '/majors', label: '专业库', icon: icons.book },
+  { to: '/insights', label: '洞察', icon: icons.chart },
+  { to: '/advisor', label: '顾问', icon: icons.spark }
 ]
 
 // 管理后台入口放进主导航，避免 nav-actions 里叠太多按钮把导航挤窄。
@@ -68,7 +76,7 @@ onUnmounted(() => window.removeEventListener('scroll', onScroll))
           :to="link.to"
           class="nav-link"
           :class="{
-            'is-active': link.to === '/admin' ? route.path.startsWith('/admin') : route.path === link.to,
+            'is-active': link.to === '/' ? route.path === '/' : route.path.startsWith(link.to),
             'is-admin-link': link.to === '/admin'
           }"
         >
