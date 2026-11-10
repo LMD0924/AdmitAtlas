@@ -27,7 +27,7 @@ import { routeLoading } from '@/composables/useRouteLoading'
           </div>
         </div>
 
-        <div class="hud-bar"><i></i></div>
+        <div class="hud-progress"><i></i></div>
         <div class="hud-foot">
           <span>ADMITATLAS / NAVIGATION</span>
           <span>◈ ONLINE</span>

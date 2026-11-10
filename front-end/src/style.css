@@ -483,8 +483,8 @@ a { color: inherit; text-decoration: none; }
 .hud-ring { position: absolute; inset: -8px; border: 1px solid var(--hud-cyan); border-radius: 20px; opacity: .45; animation: hud-ring 2s var(--ease) infinite; }
 .hud-title { font-size: 14px; font-weight: 600; letter-spacing: .02em; color: var(--text); }
 .hud-sub { margin-top: 5px; font-size: 10px; letter-spacing: .08em; color: var(--text-3); }
-.hud-bar { height: 3px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--accent) 14%, transparent); }
-.hud-bar i {
+.hud-progress { height: 3px; border-radius: 999px; overflow: hidden; background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.hud-progress i {
   display: block; width: 42%; height: 100%; border-radius: inherit;
   background: linear-gradient(90deg, transparent, var(--hud-cyan), var(--accent), transparent);
   box-shadow: 0 0 14px var(--hud-cyan); animation: hud-slide 1.15s var(--ease-soft) infinite;
@@ -570,7 +570,7 @@ a:hover .link-arrow, button:hover .link-arrow { transform: translateX(4px); }
   /* 科技感动效整体降级为静态磨砂 HUD，避免闪烁与残留光带 */
   .hud-scan, .hud-grid, .hud-ring, .route-scanline { display: none !important; }
   .hud-dot { animation: none !important; }
-  .hud-bar i { width: 100%; transform: none; animation: none !important; }
+  .hud-progress i { width: 100%; transform: none; animation: none !important; }
 }
 
 /* ---------- print / PDF ---------- */

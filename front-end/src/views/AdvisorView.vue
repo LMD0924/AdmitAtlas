@@ -648,7 +648,7 @@ onMounted(async () => {
 
     <div class="adv-content space-y-5">
       <!-- 顶部 HUD 状态条 -->
-      <div v-reveal="0" class="glass hud-bar">
+      <div v-reveal="0" class="glass adv-status-bar">
         <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
           <span class="adv-sys">SYS / ADVISOR.CORE</span>
           <span class="adv-dot" aria-hidden="true"></span>
@@ -905,7 +905,7 @@ onMounted(async () => {
 .adv-corner.bl { bottom: 6px; left: 6px; border-right: 0; border-top: 0; border-radius: 0 0 0 5px; }
 .adv-corner.br { bottom: 6px; right: 6px; border-left: 0; border-top: 0; border-radius: 0 0 5px 0; }
 
-.hud-bar { padding: 12px 14px; }
+.adv-status-bar { padding: 12px 14px; }
 .adv-sys, .adv-tag, .adv-meta, .brief-label { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 .adv-sys { font-size: 10px; font-weight: 600; letter-spacing: .16em; color: var(--accent-text); }
 .adv-tag { font-size: 10px; letter-spacing: .12em; color: var(--teal); }
