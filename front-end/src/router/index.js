@@ -46,6 +46,13 @@ const routes = [
     meta: { title: '院校库' }
   },
   {
+    // 独立详情页：游客可直接访问 / 分享；query 原样带回院校库以还原筛选条件。
+    path: '/schools/:code',
+    name: 'school-detail',
+    component: () => import('@/views/SchoolDetailView.vue'),
+    meta: { title: '院校详情' }
+  },
+  {
     path: '/admin',
     component: () => import('@/views/admin/AdminLayout.vue'),
     meta: { title: '管理后台', requiresAdmin: true },
@@ -99,7 +106,12 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes,
-  scrollBehavior: () => ({ top: 0 })
+  scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition
+    // 仅筛选条件写入 query 时不滚动；切换页面才回到顶部。
+    if (to.path === from.path) return false
+    return { top: 0 }
+  }
 })
 
 let firstNavigation = true
@@ -109,7 +121,8 @@ let firstNavigation = true
  * 权限不足统一带 redirect 跳登录页，登录后原路返回。
  */
 router.beforeEach(async (to, from) => {
-  if (!firstNavigation && to.fullPath !== from.fullPath) startRouteLoading()
+  // query 变化（院校库筛选条件同步到 URL）属于同一页面内的状态更新，不闪加载遮罩。
+  if (!firstNavigation && to.path !== from.path) startRouteLoading()
   firstNavigation = false
 
   const auth = useAuthStore()
