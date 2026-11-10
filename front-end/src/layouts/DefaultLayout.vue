@@ -5,6 +5,9 @@ import RouteLoader from '@/components/RouteLoader.vue'
 import { getDataVersion } from '@/api'
 
 const version = ref(null)
+// 每次页面进入递增 key 重建扫描光带，保证 CSS 动画能重复播放。
+const scanKey = ref(0)
+function startScan() { scanKey.value += 1 }
 onMounted(async () => {
   try { version.value = await getDataVersion() } catch { /* 后端未启动时页脚降级显示 */ }
 })
@@ -23,7 +26,7 @@ onMounted(async () => {
 
     <main class="mx-auto w-full max-w-[1200px] flex-1 px-5 pb-16 pt-[110px] md:px-8 md:pt-[124px]">
       <RouterView v-slot="{ Component, route }">
-        <Transition name="page" mode="out-in">
+        <Transition name="page" mode="out-in" @before-enter="startScan">
           <component :is="Component" :key="route.path" />
         </Transition>
       </RouterView>
@@ -42,5 +45,6 @@ onMounted(async () => {
     </footer>
   </div>
 
+  <div v-if="scanKey" :key="scanKey" class="route-scanline" aria-hidden="true"></div>
   <RouteLoader />
 </template>
