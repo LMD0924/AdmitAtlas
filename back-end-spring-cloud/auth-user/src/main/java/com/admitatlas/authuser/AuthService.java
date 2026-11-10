@@ -11,6 +11,8 @@ import com.admitatlas.common.model.Models;
 import com.admitatlas.common.repository.AdmitAtlasRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Pattern;
 
@@ -27,6 +29,10 @@ public class AuthService {
     private static final int MIN_PASSWORD = 8;
     private static final int MAX_PASSWORD = 64;
 
+    /** 连续输错 5 次冻结 30 分钟；计数按用户名维度，账号不存在也计数，避免被枚举探测。 */
+    public static final int MAX_FAILED_ATTEMPTS = 5;
+    public static final long LOCK_MILLIS = 30L * 60 * 1000;
+
     private final AdmitAtlasRepository repo;
     private final JwtUtil jwt;
 
@@ -39,17 +45,58 @@ public class AuthService {
         if (req == null || isBlank(req.username()) || isBlank(req.password())) {
             throw new BizException(ResultCode.BAD_REQUEST, "用户名和密码不能为空");
         }
-        Optional<Models.UserAccount> found = repo.userByUsername(req.username().trim());
-        if (found.isEmpty() || !PasswordHasher.matches(req.password(), found.get().passwordHash())) {
-            throw new BizException(ResultCode.UNAUTHORIZED, "用户名或密码错误");
+        String username = req.username().trim();
+        long now = System.currentTimeMillis();
+
+        Models.LoginAttempt attempt = repo.loginAttempt(username).orElse(null);
+        if (attempt != null && attempt.lockedUntil() != null) {
+            if (attempt.lockedUntil() > now) {
+                long seconds = (attempt.lockedUntil() - now + 999) / 1000;
+                throw new BizException(ResultCode.ACCOUNT_LOCKED,
+                        "账号已冻结，请 " + seconds / 60 + " 分 " + seconds % 60 + " 秒后重试",
+                        lockData(attempt.lockedUntil(), seconds));
+            }
+            // 冻结已到期：本次请求按全新计数处理（不提前删库，
+            // 由登录成功或下一次失败写入时覆盖，避免重复 DELETE）。
+            attempt = null;
         }
+
+        Optional<Models.UserAccount> found = repo.userByUsername(username);
+        boolean matched = found.isPresent()
+                && PasswordHasher.matches(req.password(), found.get().passwordHash());
+        if (!matched) {
+            int failed = (attempt == null ? 0 : attempt.failedCount()) + 1;
+            if (failed >= MAX_FAILED_ATTEMPTS) {
+                long until = now + LOCK_MILLIS;
+                repo.saveLoginAttempt(username, failed, until);
+                throw new BizException(ResultCode.ACCOUNT_LOCKED,
+                        "连续输错 " + MAX_FAILED_ATTEMPTS + " 次，账号已冻结 30 分钟",
+                        lockData(until, LOCK_MILLIS / 1000));
+            }
+            repo.saveLoginAttempt(username, failed, null);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("remainingAttempts", MAX_FAILED_ATTEMPTS - failed);
+            data.put("maxAttempts", MAX_FAILED_ATTEMPTS);
+            throw new BizException(ResultCode.UNAUTHORIZED,
+                    "用户名或密码错误，还可尝试 " + (MAX_FAILED_ATTEMPTS - failed) + " 次", data);
+        }
+
         Models.UserAccount account = found.get();
         if (!"ACTIVE".equals(account.status())) {
             throw new BizException(ResultCode.FORBIDDEN, "该账号已停用，请联系管理员");
         }
+        repo.clearLoginAttempt(username);
         repo.touchLogin(account.id());
         return new AuthDTO.LoginResponse(jwt.issue(account), jwt.ttlSeconds(), "Bearer",
                 toView(AuthUser.from(account), false));
+    }
+
+    private static Map<String, Object> lockData(long until, long seconds) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("lockedUntil", until);
+        data.put("retryAfterSeconds", seconds);
+        data.put("maxAttempts", MAX_FAILED_ATTEMPTS);
+        return data;
     }
 
     /** 自助注册：角色固定 STUDENT，省份缺省湖北（P1 试点省）。 */

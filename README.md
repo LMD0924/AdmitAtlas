@@ -82,7 +82,7 @@ AdmitAtlas/                              # 外层：项目根 / Git 仓库根
 cd back-end-spring-cloud
 mvn -B clean package
 
-# 后端：启动唯一应用（默认 8080，自动执行 Flyway V1~V3，无需 Docker / MySQL）
+# 后端：启动唯一应用（默认 8080，自动执行 Flyway V1~V5，无需 Docker / MySQL）
 java -jar launcher/target/admitatlas-launcher-0.1.0-SNAPSHOT.jar
 
 # 验证：健康、系统概览、三种考试模式
@@ -96,7 +96,7 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-默认数据落在 `back-end-spring-cloud/data/admitatlas.mv.db`（H2 文件库，已在 `.gitignore` 中忽略）。切到 MySQL：
+默认数据落在 **`./data/admitatlas.mv.db`**（H2 文件库，已在 `.gitignore` 中忽略）。注意 `./data` 与 `./uploads` 都是相对 **JVM 工作目录** 解析的：命令行在 `back-end-spring-cloud/` 下启动时落在子模块目录，IDEA 以项目根为工作目录启动时落在项目根 `AdmitAtlas/data/`。两者是**不同的库**，建议统一 IDEA 的 Working directory 为 `back-end-spring-cloud`，避免数据看起来「不见了」。切到 MySQL：
 
 ```bash
 java -jar launcher/target/admitatlas-launcher-0.1.0-SNAPSHOT.jar \
@@ -126,7 +126,8 @@ MySQL 连接串 / 账号 / 密码全部走环境变量 `ADMITATLAS_DB_URL`、`AD
 
 技术实现：
 
-- 密码 `pbkdf2$<iterations>$<salt-b64url>$<hash-b64url>`（120,000 轮、16 字节随机盐、256 bit 派生密钥），V3 迁移里的演示哈希由 Python 生成、Java 校验，有专门单元测试保证跨语言一致。
+- 密码 `pbkdf2$<iterations>$<salt-b64url>$<hash-b64url>`（120,000 轮、16 字节随机盐、256 bit 派生密钥）。演示账号密码以 `LoginView.vue` 的一键填入按钮为准；V5 迁移用 `PasswordHasher` 对同一组口令重算哈希，确保本地全新迁移后三个账号都能登录。**切勿修改 V1~V4 的内容**：Flyway 会校验已应用迁移的 checksum，改了就会拒绝启动（报错 `Migration checksum mismatch`）；要修数据请新增迁移。
+- 登录失败按用户名维度计数（账号不存在同样计数，防枚举）：前 4 次返回 `code = 401` 并带剩余次数，第 5 次返回 `code = 423` 冻结 30 分钟，冻结期内正确密码也拒绝；登录成功、管理员重置密码或启用账号会清零。登录页提供密码显示 / 隐藏切换与 `mm:ss` 倒计时。
 - JWT payload 只含 `uid / sub / role / ver / iat / exp`；每次请求除了验签，还回查账号 `status`、`role` 与 `token_version`。**退出登录、停用账号、重置密码都会让已签发令牌立即失效**，无需黑名单表。
 - 拦截器把路径分三级：`PUBLIC` / `AUTHENTICATED` / `ADMIN`。**受保护路径显式登记**，未登记或不存在的路径仍是真正的 404（不被鉴权层改成 401）；新增写接口必须在 `docs/接口说明.md` 登记。
 - 自助注册**强制 STUDENT**，不能通过匿名接口提权；管理员账号由内置数据或已有管理员在后台创建。

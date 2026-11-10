@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
@@ -15,6 +15,36 @@ const provinceCode = ref('42')
 const busy = ref(false)
 const error = ref('')
 const notice = ref('')
+const showPassword = ref(false)
+
+// F-S-01：登录冻结倒计时。后端按用户名维度计数，前端同样按账号隔离，
+// 刷新页面后由下一次请求重新校准，避免只靠内存状态被绕过。
+const lockMap = ref({})
+const now = ref(Date.now())
+const currentLock = computed(() => lockMap.value[username.value.trim()] || 0)
+const remainingSeconds = computed(() =>
+  Math.max(0, Math.ceil((currentLock.value - now.value) / 1000)))
+const locked = computed(() => remainingSeconds.value > 0)
+const lockText = computed(() => {
+  const s = remainingSeconds.value
+  return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+})
+const ticker = setInterval(() => {
+  now.value = Date.now()
+  const next = { ...lockMap.value }
+  let changed = false
+  for (const [u, until] of Object.entries(next)) {
+    if (until && now.value >= until) { delete next[u]; changed = true }
+  }
+  if (changed) {
+    lockMap.value = next
+    if (!locked.value) {
+      error.value = ''
+      notice.value = '冻结已解除，可以重新登录了'
+    }
+  }
+}, 1000)
+onBeforeUnmount(() => clearInterval(ticker))
 
 const demos = [
   { label: '学生账号', username: 'student', password: 'Student@123456', cls: 'btn-mint' },
@@ -36,6 +66,10 @@ function fill(demo) {
 async function submit() {
   error.value = ''
   notice.value = ''
+  if (locked.value) {
+    error.value = `账号仍处于冻结期，请在 ${lockText.value} 后重试`
+    return
+  }
   if (!username.value.trim() || !password.value) {
     error.value = '请填写用户名和密码'
     return
@@ -49,9 +83,16 @@ async function submit() {
     const user = mode.value === 'login'
       ? await auth.login(payload.username, payload.password)
       : await auth.register({ ...payload, displayName: displayName.value, provinceCode: provinceCode.value })
+    const next = { ...lockMap.value }
+    delete next[username.value.trim()]
+    lockMap.value = next
     const redirect = typeof route.query.redirect === 'string' ? route.query.redirect : ''
     router.push(redirect || (user.role === 'ADMIN' ? '/admin' : '/score'))
   } catch (e) {
+    if (e.code === 423 && e.data?.lockedUntil) {
+      lockMap.value = { ...lockMap.value, [username.value.trim()]: Number(e.data.lockedUntil) }
+      now.value = Date.now()
+    }
     error.value = e.message || '操作失败，请重试'
   } finally {
     busy.value = false
@@ -142,7 +183,27 @@ async function submit() {
           </div>
           <div>
             <label class="field-label" for="aa-password">密码</label>
-            <input id="aa-password" v-model="password" class="field" type="password" :autocomplete="mode === 'login' ? 'current-password' : 'new-password'" placeholder="8~64 位" />
+            <div class="password-wrap">
+              <input id="aa-password" v-model="password" class="field password-input"
+                :type="showPassword ? 'text' : 'password'"
+                :autocomplete="mode === 'login' ? 'current-password' : 'new-password'"
+                placeholder="8~64 位" />
+              <button class="password-toggle" type="button"
+                :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+                :aria-pressed="showPassword" @click="showPassword = !showPassword">
+                <svg v-if="!showPassword" viewBox="0 0 24 24" width="17" height="17" fill="none"
+                  stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" />
+                  <circle cx="12" cy="12" r="2.6" />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" width="17" height="17" fill="none"
+                  stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 4l16 16" />
+                  <path d="M9.9 5.7A10.6 10.6 0 0 1 12 5.5c6.4 0 10 6.5 10 6.5a17 17 0 0 1-2.5 3.2M6.3 6.8A17.4 17.4 0 0 0 2 12s3.6 6.5 10 6.5a10.5 10.5 0 0 0 3.2-.5" />
+                  <path d="M10.1 10.1a2.7 2.7 0 0 0 3.8 3.8" />
+                </svg>
+              </button>
+            </div>
           </div>
           <template v-if="mode === 'register'">
             <div>
@@ -155,12 +216,20 @@ async function submit() {
             </div>
           </template>
 
-          <p v-if="error" class="rounded-lg border border-hairline bg-[var(--rose-bg)] px-3 py-2 text-[12px] text-[var(--rose)]">{{ error }}</p>
+          <div v-if="locked" class="rounded-xl border border-hairline px-4 py-3 text-[12px] leading-6"
+            style="background: var(--amber-bg); color: var(--amber)">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span class="font-semibold">账号已临时冻结</span>
+              <span class="tabular-nums font-semibold">{{ lockText }}</span>
+            </div>
+            <p class="mt-1">连续输错 5 次，30 分钟内无法登录。倒计时结束后自动恢复，也可联系管理员重置密码立即解锁。</p>
+          </div>
+          <p v-else-if="error" class="rounded-lg border border-hairline bg-[var(--rose-bg)] px-3 py-2 text-[12px] text-[var(--rose)]">{{ error }}</p>
           <p v-if="notice" class="text-[12px] text-[var(--mint)]">{{ notice }}</p>
 
           <div class="btn-group pt-2">
-            <button class="btn" :class="mode === 'login' ? 'btn-blue' : 'btn-mint'" type="submit" :disabled="busy">
-              <span class="btn-glyph">→</span> {{ busy ? '处理中…' : (mode === 'login' ? '登录' : '注册并登录') }}
+            <button class="btn" :class="mode === 'login' ? 'btn-blue' : 'btn-mint'" type="submit" :disabled="busy || locked">
+              <span class="btn-glyph">→</span> {{ locked ? `冻结中 ${lockText}` : (busy ? '处理中…' : (mode === 'login' ? '登录' : '注册并登录')) }}
             </button>
             <RouterLink to="/" class="btn btn-slate"><span class="btn-glyph">⌂</span> 先以游客身份浏览</RouterLink>
           </div>

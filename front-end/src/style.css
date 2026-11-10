@@ -509,17 +509,57 @@ a:hover .link-arrow, button:hover .link-arrow { transform: translateX(4px); }
 .markdown-body p { margin: .6em 0; }
 .markdown-body ul, .markdown-body ol { margin: .6em 0; padding-left: 1.4em; }
 .markdown-body li { margin: .25em 0; }
-.markdown-body a { color: var(--blue); text-decoration: underline; }
-.markdown-body img { max-width: 100%; height: auto; border-radius: 10px; margin: .6em 0; border: 1px solid var(--hairline); }
-.markdown-body blockquote { margin: .8em 0; padding: .4em 1em; border-left: 3px solid var(--blue); color: var(--text-2); background: var(--sky-bg); border-radius: 0 8px 8px 0; }
+.markdown-body a { color: var(--accent-text); text-decoration: underline; }
+.markdown-body img { max-width: 100%; height: auto; border-radius: 10px; margin: .6em 0; border: 1px solid var(--line); }
+.markdown-body blockquote { margin: .8em 0; padding: .4em 1em; border-left: 3px solid var(--accent-text); color: var(--text-2); background: var(--sky-bg); border-radius: 0 8px 8px 0; }
 .markdown-body code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .85em; background: var(--sky-bg); padding: .12em .4em; border-radius: 5px; }
 .markdown-body pre { background: var(--sky-bg); padding: .8em 1em; border-radius: 10px; overflow: auto; margin: .8em 0; }
 .markdown-body pre code { background: transparent; padding: 0; }
 .markdown-body table { width: 100%; border-collapse: collapse; margin: .8em 0; font-size: .85em; }
-.markdown-body th, .markdown-body td { border: 1px solid var(--hairline); padding: .4em .6em; text-align: left; }
-.markdown-body hr { border: none; border-top: 1px solid var(--hairline); margin: 1.2em 0; }
+.markdown-body th, .markdown-body td { border: 1px solid var(--line); padding: .4em .6em; text-align: left; }
+.markdown-body hr { border: none; border-top: 1px solid var(--line); margin: 1.2em 0; }
 
 /* ---------- 个人中心头像 ---------- */
-.profile-avatar-img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 1px solid var(--line); flex: none; box-shadow: var(--shadow-sm); }
-.avatar-upload-btn { position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 13px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #fff; box-shadow: var(--shadow-sm); }
+.profile-avatar-img { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 1px solid var(--line); flex: none; box-shadow: var(--shadow-soft); }
+.avatar-upload-btn { position: absolute; right: -2px; bottom: -2px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent-text); color: #fff; font-size: 13px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #fff; box-shadow: var(--shadow-soft); }
 .avatar-upload-btn:disabled { opacity: .6; cursor: default; }
+
+/* ---------- 登录：密码可见切换 ---------- */
+.password-wrap { position: relative; }
+.password-input { padding-right: 44px; }
+.password-toggle {
+  position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+  width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 8px; background: transparent; color: var(--text-3);
+  cursor: pointer; transition: color .2s, background-color .2s;
+}
+.password-toggle:hover { color: var(--accent); background: var(--surface-2); }
+.password-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.password-toggle[aria-pressed="true"] { color: var(--accent); }
+
+/* ---------- 院校库：卡片网格 ---------- */
+.school-card {
+  position: relative; display: flex; flex-direction: column; gap: 10px;
+  padding: 17px 18px; border-radius: 14px; border: 1px solid var(--line);
+  background: var(--surface); cursor: pointer; text-align: left; width: 100%;
+  transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s, background-color .3s;
+}
+.school-card:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: var(--shadow); }
+.school-card.is-selected { border-color: var(--accent); background: var(--accent-soft); }
+.school-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.school-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.school-card-code { display: block; font-size: 10px; letter-spacing: .06em; color: var(--text-3); font-variant-numeric: tabular-nums; }
+.school-card-name { display: block; font-size: 15px; font-weight: 600; color: var(--text); line-height: 1.45; margin-top: 3px; }
+.school-card-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; font-size: 11px; color: var(--text-2); }
+.school-card-tags { display: flex; flex-wrap: wrap; gap: 5px; min-height: 20px; }
+.school-card-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line-soft);
+  font-size: 11px; color: var(--text-3);
+}
+.school-card-cta { color: var(--accent-text); font-weight: 600; }
+.school-card:hover .school-card-cta { text-decoration: underline; }
+.school-tag {
+  display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px;
+  background: var(--sky-bg); color: var(--sky);
+}

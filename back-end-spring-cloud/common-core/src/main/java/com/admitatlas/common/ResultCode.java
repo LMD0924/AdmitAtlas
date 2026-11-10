@@ -11,6 +11,8 @@ public enum ResultCode {
     FORBIDDEN(403, "无权限访问"),
     NOT_FOUND(404, "资源不存在"),
     CONFLICT(409, "资源状态冲突"),
+    /** 423：登录连续失败达到阈值，账号被临时冻结。 */
+    ACCOUNT_LOCKED(423, "账号已被临时冻结"),
     NOT_IMPLEMENTED(501, "该能力尚未实现，将在后续阶段交付"),
     INTERNAL_ERROR(500, "服务内部错误"),
     UPSTREAM_ERROR(502, "依赖服务调用失败"),

@@ -394,6 +394,39 @@ public class AdmitAtlasRepository {
         jdbc.update("UPDATE student_profile SET last_login_at = CURRENT_TIMESTAMP WHERE id = ?", id);
     }
 
+    // -------------------------------------------------------------- F-S-01 登录失败锁定
+
+    /** 按用户名读取失败计数与冻结截止时间；无记录返回 empty。 */
+    public Optional<Models.LoginAttempt> loginAttempt(String username) {
+        return first(jdbc.query("SELECT username, failed_count, locked_until FROM login_attempt "
+                        + "WHERE username = ?",
+                (rs, i) -> {
+                    java.sql.Timestamp ts = rs.getTimestamp("locked_until");
+                    return new Models.LoginAttempt(rs.getString("username"),
+                            rs.getInt("failed_count"), ts == null ? null : ts.getTime());
+                }, username));
+    }
+
+    /**
+     * 写入失败计数 / 冻结截止时间。用 UPDATE + INSERT 两步而不是方言相关的
+     * MERGE / ON DUPLICATE KEY，保证 H2 2.x 与 MySQL 8 都可移植。
+     */
+    public void saveLoginAttempt(String username, int failedCount, Long lockedUntil) {
+        java.sql.Timestamp until = lockedUntil == null ? null : new java.sql.Timestamp(lockedUntil);
+        int updated = jdbc.update("UPDATE login_attempt SET failed_count = ?, locked_until = ?, "
+                + "updated_at = CURRENT_TIMESTAMP WHERE username = ?",
+                failedCount, until, username);
+        if (updated == 0) {
+            jdbc.update("INSERT INTO login_attempt (username, failed_count, locked_until, updated_at) "
+                    + "VALUES (?,?,?,CURRENT_TIMESTAMP)", username, failedCount, until);
+        }
+    }
+
+    /** 登录成功或冻结到期后清零。管理员重置密码 / 启用账号时也会调用。 */
+    public void clearLoginAttempt(String username) {
+        jdbc.update("DELETE FROM login_attempt WHERE username = ?", username);
+    }
+
     // -------------------------------------------------------------- audit & version registry
 
     public void writeAudit(Long operatorId, String operatorName, String action,

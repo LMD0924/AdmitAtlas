@@ -96,6 +96,10 @@ public final class Models {
                               String lastLoginAt, String createdAt, String avatarUrl) {
     }
 
+    /** F-S-01 加固：按用户名维度的登录失败计数与冻结截止时间（epoch 毫秒）。 */
+    public record LoginAttempt(String username, int failedCount, Long lockedUntil) {
+    }
+
     /** F-S-09：B 端关键写操作留痕。 */
     public record AuditLog(long id, Long operatorId, String operatorName, String action,
                            String targetType, String targetId, String detail, String createdAt) {

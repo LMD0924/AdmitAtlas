@@ -123,6 +123,7 @@ public class AdminController {
             throw new BizException(ResultCode.BAD_REQUEST, "不能停用当前登录的账号");
         }
         repo.updateUserStatus(id, status);
+        if ("ACTIVE".equals(status)) repo.clearLoginAttempt(target.username());
         audit("UPDATE_USER_STATUS", "USER", String.valueOf(id),
                 target.username() + " 状态 " + target.status() + " -> " + status);
         return Result.ok(Map.of("id", id, "status", status, "tokenRevoked", true));
@@ -139,8 +140,10 @@ public class AdminController {
         Models.UserAccount target = repo.userById(id)
                 .orElseThrow(() -> new BizException(ResultCode.NOT_FOUND, "未找到账号: " + id));
         repo.updatePassword(id, PasswordHasher.hash(req.password()));
+        // 管理员重置密码视为人工解锁，避免用户改完密码仍被冻结 30 分钟。
+        repo.clearLoginAttempt(target.username());
         audit("RESET_PASSWORD", "USER", String.valueOf(id),
-                "重置 " + target.username() + " 的密码");
+                "重置 " + target.username() + " 的密码并解除登录冻结");
         return Result.ok(Map.of("id", id, "reset", true, "tokenRevoked", true));
     }
 

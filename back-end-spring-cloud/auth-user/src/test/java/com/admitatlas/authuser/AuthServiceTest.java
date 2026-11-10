@@ -14,22 +14,30 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-/** 登录、注册、退出与角色防越权。 */
+/** 登录、注册、退出、角色防越权与登录失败冻结。 */
 class AuthServiceTest {
 
     private static final String SECRET = "admitatlas-test-secret-please-change-2026";
+    // 用字符数组构造，避免测试口令字面量在文件传输中被改写导致 hash / 输入不一致。
+    private static final String CORRECT = new String(new char[]{
+            'M', 'r', 'u', 'h', '@', '0', '0', '2', '0', '0', '9'});
+    private static final String WRONG = new String(new char[]{
+            'W', 'r', 'o', 'n', 'g', '@', '1', '2', '3', '4', '5'});
 
     private AdmitAtlasRepository repo;
     private AuthService service;
+    private Map<String, Models.LoginAttempt> attempts;
 
     private static Models.UserAccount account(long id, String username, String role) {
-        return new Models.UserAccount(id, username, PasswordHasher.hash("Demo@123456"),
+        return new Models.UserAccount(id, username, PasswordHasher.hash(CORRECT),
                 "演示学生", "42", role, "ACTIVE", 2, null, null, null);
     }
 
@@ -38,6 +46,21 @@ class AuthServiceTest {
         AuthContext.clear();
         repo = mock(AdmitAtlasRepository.class);
         service = new AuthService(repo, new JwtUtil(SECRET, 3600));
+        // 内存状态机模拟 login_attempt 表，覆盖跨请求的失败计数与冻结。
+        attempts = new HashMap<>();
+        when(repo.loginAttempt(anyString())).thenAnswer(inv ->
+                Optional.ofNullable(attempts.get(inv.getArgument(0, String.class))));
+        doAnswer(inv -> {
+            String u = inv.getArgument(0, String.class);
+            int count = inv.getArgument(1, Integer.class);
+            Long until = inv.getArgument(2, Long.class);
+            attempts.put(u, new Models.LoginAttempt(u, count, until));
+            return null;
+        }).when(repo).saveLoginAttempt(anyString(), anyInt(), nullable(Long.class));
+        doAnswer(inv -> {
+            attempts.remove(inv.getArgument(0, String.class));
+            return null;
+        }).when(repo).clearLoginAttempt(anyString());
     }
 
     @AfterEach
@@ -52,7 +75,7 @@ class AuthServiceTest {
         when(repo.userByUsername("student")).thenReturn(Optional.of(a));
 
         AuthDTO.LoginResponse res = service.login(
-                new AuthDTO.LoginRequest("student", "Demo@123456"));
+                new AuthDTO.LoginRequest("student", CORRECT));
 
         assertNotNull(res.token());
         assertEquals("Bearer", res.tokenType());
@@ -63,15 +86,55 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("密码错误返回 401，且不泄露账号是否存在")
+    @DisplayName("密码错误返回 401，带剩余次数提示，且不泄露账号是否存在")
     void loginWrongPassword() {
         when(repo.userByUsername("student")).thenReturn(Optional.of(
                 account(7L, "student", "STUDENT")));
         BizException ex = assertThrows(BizException.class, () -> service.login(
-                new AuthDTO.LoginRequest("student", "Wrong@12345")));
+                new AuthDTO.LoginRequest("student", WRONG)));
         assertEquals(ResultCode.UNAUTHORIZED.getCode(), ex.getCode());
-        assertEquals("用户名或密码错误", ex.getMessage());
+        assertTrue(ex.getMessage().contains("用户名或密码错误"));
+        assertEquals(4, ex.getData().get("remainingAttempts"));
+        assertEquals(5, ex.getData().get("maxAttempts"));
         verify(repo, never()).touchLogin(anyLong());
+    }
+
+    @Test
+    @DisplayName("连续 5 次错误冻结 30 分钟，冻结期内正确密码也拒绝")
+    void loginLocksAfterFiveFailures() {
+        when(repo.userByUsername("student")).thenReturn(Optional.of(
+                account(7L, "student", "STUDENT")));
+        for (int i = 1; i <= 4; i++) {
+            BizException ex = assertThrows(BizException.class, () -> service.login(
+                    new AuthDTO.LoginRequest("student", WRONG)));
+            assertEquals(ResultCode.UNAUTHORIZED.getCode(), ex.getCode());
+            assertEquals(5 - i, ex.getData().get("remainingAttempts"));
+        }
+        BizException locked = assertThrows(BizException.class, () -> service.login(
+                new AuthDTO.LoginRequest("student", WRONG)));
+        assertEquals(ResultCode.ACCOUNT_LOCKED.getCode(), locked.getCode());
+        assertEquals(1800L, locked.getData().get("retryAfterSeconds"));
+        assertNotNull(locked.getData().get("lockedUntil"));
+
+        // 冻结尚未到期，即使输入正确密码也必须拒绝（不能靠碰运气绕过）。
+        BizException stillLocked = assertThrows(BizException.class, () -> service.login(
+                new AuthDTO.LoginRequest("student", CORRECT)));
+        assertEquals(ResultCode.ACCOUNT_LOCKED.getCode(), stillLocked.getCode());
+        verify(repo, never()).touchLogin(anyLong());
+    }
+
+    @Test
+    @DisplayName("冻结到期后自动清零，登录成功会清除失败计数")
+    void lockExpiresAndSuccessClears() {
+        when(repo.userByUsername("student")).thenReturn(Optional.of(
+                account(7L, "student", "STUDENT")));
+        attempts.put("student", new Models.LoginAttempt("student", 5,
+                System.currentTimeMillis() - 1000L));
+        AuthDTO.LoginResponse res = service.login(
+                new AuthDTO.LoginRequest("student", CORRECT));
+        assertNotNull(res.token());
+        assertTrue(attempts.isEmpty());
+        verify(repo).clearLoginAttempt("student");
     }
 
     @Test
@@ -83,7 +146,7 @@ class AuthServiceTest {
                 "DISABLED", a.tokenVersion(), null, null, null);
         when(repo.userByUsername("student")).thenReturn(Optional.of(disabled));
         BizException ex = assertThrows(BizException.class, () -> service.login(
-                new AuthDTO.LoginRequest("student", "Demo@123456")));
+                new AuthDTO.LoginRequest("student", CORRECT)));
         assertEquals(ResultCode.FORBIDDEN.getCode(), ex.getCode());
     }
 

@@ -12,11 +12,12 @@ request.interceptors.request.use((config) => {
   return config
 })
 
-/** 业务错误：保留 code，方便页面区分 400 / 501 / 503 等口径。 */
-export function apiError(message, code, status) {
+/** 业务错误：保留 code 与 data，方便页面区分 400 / 423 / 501 等口径并读取剩余次数、冻结截止时间。 */
+export function apiError(message, code, status, data) {
   const err = new Error(message)
   err.code = code
   err.status = status
+  err.data = data ?? null
   return err
 }
 
@@ -36,6 +37,7 @@ const FALLBACK = {
   401: '登录状态已失效',
   404: '未找到对应资源',
   409: '数据状态冲突',
+  423: '账号已被临时冻结',
   501: '该能力尚未实现',
   503: '该省 / 年份的数据尚未发布'
 }
@@ -48,7 +50,7 @@ request.interceptors.response.use(
       if (body.code !== 0) {
         if (body.code === 401 && !isAuthEndpoint(response.config.url)) revokeSession()
         return Promise.reject(apiError(
-          body.message || FALLBACK[body.code] || '请求失败', body.code, response.status))
+          body.message || FALLBACK[body.code] || '请求失败', body.code, response.status, body.data))
       }
       return body.data
     }
@@ -61,7 +63,7 @@ request.interceptors.response.use(
     if ((status === 401 || body?.code === 401) && !isAuthEndpoint(error.config?.url)) {
       revokeSession()
     }
-    return Promise.reject(apiError(message, body?.code ?? status, status))
+    return Promise.reject(apiError(message, body?.code ?? status, status, body?.data))
   }
 )
 

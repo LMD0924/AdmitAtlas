@@ -24,6 +24,8 @@ const detailLoading = ref(false)
 const searched = ref(false)
 const error = ref('')
 const chartEl = ref(null)
+const detailEl = ref(null)
+const selectedCode = ref('')
 let chart = null
 
 const md = new MarkdownIt({ html: false, linkify: true, breaks: true })
@@ -72,7 +74,7 @@ function clear() {
   searched.value = false
   rows.value = []
   total.value = 0
-  detail.value = null
+  closeDetail()
   error.value = ''
   search()
 }
@@ -81,18 +83,31 @@ async function openDetail(code) {
   detailLoading.value = true
   detail.value = null
   profileMarkdown.value = ''
-  try {
-    const [d, p] = await Promise.all([
-      getSchool(code, { provinceCode: '42', category: '物理类' }),
-      getSchoolProfile(code)
-    ])
-    detail.value = d
-    profileMarkdown.value = p?.profileMarkdown || ''
-  } catch (e) {
-    error.value = e.message || '详情加载失败'
-  } finally {
-    detailLoading.value = false
+  selectedCode.value = code
+  // 两个请求解耦：院校资料缺失 / 失败不能拖垮档案详情本身。
+  const [schoolRes, profileRes] = await Promise.allSettled([
+    getSchool(code, { provinceCode: '42', category: '物理类' }),
+    getSchoolProfile(code)
+  ])
+  if (schoolRes.status === 'fulfilled') {
+    detail.value = schoolRes.value
+    error.value = ''
+  } else {
+    error.value = schoolRes.reason?.message || '院校详情加载失败'
   }
+  profileMarkdown.value = profileRes.status === 'fulfilled'
+    ? (profileRes.value?.profileMarkdown || '') : ''
+  detailLoading.value = false
+  await nextTick()
+  // 详情在列表下方，点击后自动滚过去，避免「看起来没反应」。
+  if (detail.value) detailEl.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function closeDetail() {
+  detail.value = null
+  selectedCode.value = ''
+  profileMarkdown.value = ''
+  if (chart) { chart.dispose(); chart = null }
 }
 
 const chartSeries = computed(() => {
@@ -186,25 +201,34 @@ onBeforeUnmount(() => {
 
       <div v-if="error" class="mt-4 rounded-lg px-3 py-2 text-[12px]" style="background: var(--rose-bg); color: var(--rose)">{{ error }}</div>
 
-      <div class="mt-5 overflow-x-auto">
-        <table class="data-table min-w-[640px]">
-          <thead><tr><th>代码</th><th>院校</th><th>属地</th><th>层次标签</th><th>类型</th><th>操作</th></tr></thead>
-          <tbody>
-            <tr v-for="s in rows" :key="s.schoolCode">
-              <td class="font-semibold tabular-nums">{{ s.schoolCode }}</td>
-              <td style="color: var(--text)">{{ s.schoolName }}</td>
-              <td>{{ s.city || '—' }}</td>
-              <td>
-                <span v-for="t in (s.tierTags || '').split(',')" :key="t" class="mr-1 inline-block rounded-full px-2 py-0.5 text-[10px]" style="background: var(--sky-bg); color: var(--sky)">{{ t }}</span>
-              </td>
-              <td>{{ s.schoolType || '—' }}</td>
-              <td><button class="btn btn-teal" @click="openDetail(s.schoolCode)"><span class="btn-glyph">⌕</span> 详情</button></td>
-            </tr>
-            <tr v-if="!rows.length"><td colspan="6" class="py-8 text-center faint">
-              {{ searched ? '没有匹配的院校，试试放宽条件' : '正在加载院校档案…' }}
-            </td></tr>
-          </tbody>
-        </table>
+      <div v-if="rows.length" class="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <button v-for="s in rows" :key="s.schoolCode" type="button" class="school-card"
+          :class="{ 'is-selected': selectedCode === s.schoolCode }"
+          @click="openDetail(s.schoolCode)">
+          <span class="school-card-head">
+            <span>
+              <span class="school-card-code">{{ s.schoolCode }}</span>
+              <span class="school-card-name">{{ s.schoolName }}</span>
+            </span>
+            <span class="pill pill-sky">{{ s.schoolLevel || '本科' }}</span>
+          </span>
+          <span class="school-card-meta">
+            <span>所在地 · {{ s.city || '—' }}</span>
+            <span>类型 · {{ s.schoolType || '—' }}</span>
+            <span v-if="s.supervisor">主管 · {{ s.supervisor }}</span>
+          </span>
+          <span class="school-card-tags">
+            <span v-for="t in (s.tierTags || '').split(',').filter(Boolean)" :key="t" class="school-tag">{{ t }}</span>
+            <span v-if="!s.tierTags" class="faint text-[10px]">暂无层次标签</span>
+          </span>
+          <span class="school-card-foot">
+            <span>{{ s.intro ? s.intro.slice(0, 28) + (s.intro.length > 28 ? '…' : '') : '点击查看完整档案' }}</span>
+            <span class="school-card-cta">查看详情 →</span>
+          </span>
+        </button>
+      </div>
+      <div v-else class="mt-5 rounded-xl border border-hairline py-10 text-center text-[12px] faint">
+        {{ searched ? '没有匹配的院校，试试放宽条件' : '正在加载院校档案…' }}
       </div>
 
       <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-[11px] faint">
@@ -218,9 +242,12 @@ onBeforeUnmount(() => {
 
     <div v-if="detailLoading" class="glass shimmer h-40 p-5"><div class="h-2.5 w-32 rounded-full placeholder-bar"></div></div>
 
-    <div v-if="detail" class="grid gap-4 lg:grid-cols-12">
+    <div v-if="detail" ref="detailEl" class="scroll-mt-24 grid gap-4 lg:grid-cols-12">
       <div class="glass p-5 lg:col-span-5">
-        <p class="eyebrow">School profile</p>
+        <div class="flex items-start justify-between gap-3">
+          <p class="eyebrow">School profile</p>
+          <button type="button" class="btn btn-slate" @click="closeDetail">✕ 收起</button>
+        </div>
         <h2 class="mt-2 text-[17px] font-semibold">{{ detail.school.schoolName }}</h2>
         <p class="mt-1 text-[11px] faint">{{ detail.school.schoolCode }} · {{ detail.school.supervisor }}</p>
         <hr class="hairline my-4" />
@@ -246,8 +273,8 @@ onBeforeUnmount(() => {
             <thead><tr><th>年份</th><th>专业组</th><th>最低分</th><th>最低位次</th><th>计划数</th></tr></thead>
             <tbody>
               <tr v-for="r in detail.admissionScores" :key="r.id">
-                <td>{{ r.examYear }}</td><td>{{ r.groupCode }} · {{ r.unitName }}</td>
-                <td>{{ r.minScore }}</td><td class="font-semibold">{{ r.minRank.toLocaleString() }}</td>
+                <td>{{ r.examYear }}</td><td>{{ r.groupCode }} · {{ r.unitName || '—' }}</td>
+                <td>{{ r.minScore ?? '—' }}</td><td class="font-semibold">{{ r.minRank != null ? r.minRank.toLocaleString() : '—' }}</td>
                 <td>{{ r.planCount ?? '—' }}</td>
               </tr>
             </tbody>
